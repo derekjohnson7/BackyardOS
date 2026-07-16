@@ -18,7 +18,7 @@ over time.
 recommendations.
 
 ## Planned Features
- - ESP32 Sensor Stations.
+ - ESP32 Sensor Stations
  - Soil Mositure Moinitoring
  - Temperature/Humidity Sensing
  - Historical Database
