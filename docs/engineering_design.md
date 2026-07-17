@@ -75,3 +75,29 @@ Questions such as:
 cannot be answered with objective data.
 
 BackyardOS exists to replace assumptions with measurements.
+
+## Development Environment
+
+### Host System
+
+- macOS
+
+### IDE
+
+- Arduino IDE 2.3.10
+
+### Board Support Package
+
+- Espressif ESP32 Arduino Core
+
+### Development Board
+
+- ESP32 Dev Module (USB-C)
+
+### Hardware Bring-Up Result
+
+- Board: ESP32 Dev Module
+- Port: `/dev/cu.usbserial-0001`
+- Onboard LED pin: GPIO 2
+- Blink test: successful
+- LED behavior: blue onboard LED flashes once per second
