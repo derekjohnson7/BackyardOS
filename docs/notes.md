@@ -37,3 +37,9 @@ To isolate the issue:
 After replacing the sensor, the ESP32 immediately reported raw readings of
 approximately `3300` in air, confirming that the original moisture sensor
 was defective rather than indicating a power supply or ESP32 issue.
+
+First BME280 Reading:
+Temperature = 27.23 °C
+Pressure = 988.52 hPa
+Approx. Altitude = 207.92 m
+Humidity = 54.91 %
