@@ -22,7 +22,7 @@
 - Corrected SDA/SCL wiring on ESP32
 - Installed and soldered permanent BME280 headers
 
-## v0.3.0
+## v0.3.0 (COMPLETE)
 
 ### Added
 - Combined capacitive soil moisture and BME280 readings in a single 
@@ -39,3 +39,20 @@ firmware loop
 - BME280 on I2C address 0x76
 - BME280 SDA on GPIO21
 - BME280 SCL on GPIO22
+
+
+## v0.4.0 - Networked Sensor Node
+
+### Added
+- Wi-Fi connectivity via ESP32
+- NTP time synchronization
+- Timestamped environmental observations
+- 10-second sensor reading interval
+- Local credential management using `secrets.h`
+- Example credential configuration with `secrets.example.h`
+
+### Verified
+- ESP32 successfully connects to 2.4 GHz IoT network
+- NTP returns correct local timestamp
+- Soil moisture, temperature, humidity, and pressure readings operate alongside Wi-Fi
+- Wi-Fi credentials excluded from version control
