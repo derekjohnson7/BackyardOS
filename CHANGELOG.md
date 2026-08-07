@@ -21,3 +21,21 @@
 ### Fixed
 - Corrected SDA/SCL wiring on ESP32
 - Installed and soldered permanent BME280 headers
+
+## v0.3.0
+
+### Added
+- Combined capacitive soil moisture and BME280 readings in a single 
+firmware loop
+- Unified serial output for:
+  - Raw soil moisture ADC
+  - Relative soil moisture
+  - Temperature
+  - Relative humidity
+  - Atmospheric pressure
+
+### Verified
+- Moisture sensor on GPIO35
+- BME280 on I2C address 0x76
+- BME280 SDA on GPIO21
+- BME280 SCL on GPIO22
