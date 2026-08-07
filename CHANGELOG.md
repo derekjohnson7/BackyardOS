@@ -9,7 +9,7 @@
 - Initial project structure
 - Version 0.1 milestone
 
-## v0.2.0
+## v0.2.0 (COMPELTE)
 
 ### Added
 - Integrated BME280 environmental sensor
