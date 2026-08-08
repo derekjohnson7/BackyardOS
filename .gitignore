@@ -4,3 +4,5 @@ __pycache__/
 .vscode/
 .DS_Store
 firmware/BackyardOS/secrets.h
+backend/backyardos.db
+backend/.venv
