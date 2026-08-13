@@ -1,6 +1,7 @@
 # Soil Moisture Calibration
 
-BackyardOS uses a capacitive soil moisture sensor connected to ESP32 GPIO35.
+BackyardOS uses a capacitive soil moisture sensor connected to ESP32 
+GPIO35.
 
 Higher ADC values indicate drier conditions.
 Lower ADC values indicate wetter conditions.
@@ -16,4 +17,3 @@ The firmware currently uses:
 ```cpp
 const int dryValue = 2800;
 const int wetValue = 1090;
-
