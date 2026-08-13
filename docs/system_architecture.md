@@ -4,7 +4,47 @@ BackyardOS is organized into separate sensing, network, backend, storage, and vi
 
 ## Current Architecture
 
-Sensors -> ESP32 -> Wi-Fi/HTTP -> FastAPI -> SQLModel -> SQLite -> Dashboard
+```text
+             Backyard Environment
+                     |
+        +------------+------------+
+        |                         |
+        ▼                         ▼
++----------------+        +----------------+
+| Soil Moisture  |        |     BME280     |
+|     Sensor     |        | Temp / RH / P  |
++----------------+        +----------------+
+        |                         |
+        +------------+------------+
+                     |
+                     ▼
+              +-------------+
+              |    ESP32    |
+              | Sensor Node |
+              +-------------+
+                     |
+                     | Wi-Fi
+                     |
+                     | HTTP / JSON
+                     ▼
+              +-------------+
+              |   FastAPI   |
+              |   Backend   |
+              +-------------+
+                     |
+                     | SQLModel
+                     ▼
+              +-------------+
+              |   SQLite    |
+              |  Database   |
+              +-------------+
+                     |
+                     ▼
+              +-------------+
+              |  Dashboard  |
+              |   Planned   |
+              +-------------+
+```
 
 ## Current Components
 
