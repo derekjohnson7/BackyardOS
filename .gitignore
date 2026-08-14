@@ -6,3 +6,4 @@ __pycache__/
 firmware/BackyardOS/secrets.h
 backend/backyardos.db
 backend/.venv
+firmware/WiFiTest/secrets.h
