@@ -4,7 +4,11 @@ from sqlmodel import Session, select
 from database import create_db_and_tables, get_session
 from models import SensorReading, SensorReadingCreate
 
-app = FastAPI()
+app = FastAPI(
+     docs_url="/docs",
+     redoc_url="/redoc",
+     openapi_url="/openapi.json"
+)
 
 
 @app.on_event("startup")
