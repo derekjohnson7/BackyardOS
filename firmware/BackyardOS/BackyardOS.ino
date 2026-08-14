@@ -4,6 +4,8 @@
 #include <Adafruit_BME280.h>
 #include "time.h"
 #include "secrets.h"
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 Adafruit_BME280 bme;
 
@@ -13,10 +15,85 @@ const int moisturePin = 35;
 const int dryValue = 2800;
 const int wetValue = 1090;
 
+
 // --- Time ---
 const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -6 * 3600;   // Central Standard Time
 const int daylightOffset_sec = 3600;    // Daylight Saving Time
+
+
+// --- WiFi event logging ---
+void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+    Serial.print("WiFi disconnect reason code: ");
+    Serial.println(info.wifi_sta_disconnected.reason);
+  }
+}
+
+
+// --- Send reading to Render API ---
+void sendReading(
+  int rawMoisture,
+  float moisturePercent,
+  float temperature,
+  float humidity,
+  float pressure,
+  struct tm timeinfo
+) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected. Skipping POST.");
+    return;
+  }
+
+  char timestamp[25];
+
+  strftime(
+    timestamp,
+    sizeof(timestamp),
+    "%Y-%m-%dT%H:%M:%S",
+    &timeinfo
+  );
+
+  String jsonPayload = "{";
+  jsonPayload += "\"device_id\":\"backyard-node-01\",";
+  jsonPayload += "\"timestamp\":\"" + String(timestamp) + "\",";
+  jsonPayload += "\"soil_moisture_raw\":" + String(rawMoisture) + ",";
+  jsonPayload += "\"soil_moisture_pct\":" + String(moisturePercent, 1) + ",";
+  jsonPayload += "\"temperature_c\":" + String(temperature, 2) + ",";
+  jsonPayload += "\"humidity_pct\":" + String(humidity, 2) + ",";
+  jsonPayload += "\"pressure_hpa\":" + String(pressure, 2);
+  jsonPayload += "}";
+
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient http;
+
+  http.begin(
+    client,
+    "https://backyardos.onrender.com/readings"
+  );
+
+  http.addHeader("Content-Type", "application/json");
+
+  int httpResponseCode = http.POST(jsonPayload);
+
+  Serial.print("POST response code: ");
+  Serial.println(httpResponseCode);
+
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+
+    Serial.print("Server response: ");
+    Serial.println(response);
+  } else {
+    Serial.print("POST failed: ");
+    Serial.println(http.errorToString(httpResponseCode));
+  }
+
+  http.end();
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -24,9 +101,11 @@ void setup() {
 
   Serial.println("Starting BackyardOS...");
 
+
   // --- BME280 ---
   if (!bme.begin(0x76)) {
     Serial.println("BME280 not found!");
+
     while (true) {
       delay(1000);
     }
@@ -34,41 +113,80 @@ void setup() {
 
   Serial.println("BME280 connected.");
 
+
+  // --- WiFi event listener ---
+  WiFi.onEvent(onWiFiEvent);
+
+
   // --- WiFi ---
   WiFi.disconnect(true);
   delay(1000);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);;
+  delay(500);
 
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  unsigned long startAttemptTime = millis();
+  const unsigned long wifiTimeout = 10000;  // 10 seconds
+
+  while (
+    WiFi.status() != WL_CONNECTED &&
+    millis() - startAttemptTime < wifiTimeout
+  ) {
     delay(500);
-    Serial.print(".");
+
+    Serial.print("WiFi status: ");
+    Serial.println(WiFi.status());
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected!");
+
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    Serial.print("RSSI: ");
+    Serial.println(WiFi.RSSI());
+  } else {
+    Serial.println("WiFi connection FAILED.");
+  }
+
+
+  // --- NTP time ---
+  if (WiFi.status() == WL_CONNECTED) {
+    configTime(
+      gmtOffset_sec,
+      daylightOffset_sec,
+      ntpServer
+    );
+
+    Serial.println("Time synchronization requested.");
+  } else {
+    Serial.println("Skipping NTP setup because WiFi is not connected.");
   }
 
   Serial.println();
-  Serial.println("WiFi connected!");
-
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // --- NTP time ---
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-  Serial.println("Time synchronization requested.");
-  Serial.println();
 }
+
 
 void loop() {
   // --- Time ---
   struct tm timeinfo;
 
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
+  bool timeAvailable = false;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    timeAvailable = getLocalTime(&timeinfo);
   }
+
+  if (!timeAvailable) {
+    Serial.println("Time unavailable.");
+  }
+
 
   // --- Moisture ---
   int rawMoisture = analogRead(moisturePin);
@@ -77,19 +195,25 @@ void loop() {
       (dryValue - rawMoisture) * 100.0 /
       (dryValue - wetValue);
 
-  moisturePercent = constrain(moisturePercent, 0.0, 100.0);
+  moisturePercent =
+      constrain(moisturePercent, 0.0, 100.0);
+
 
   // --- BME280 ---
   float temperature = bme.readTemperature();
   float humidity = bme.readHumidity();
   float pressure = bme.readPressure() / 100.0F;
 
+
   // --- Output ---
   Serial.println("========== BackyardOS ==========");
 
-  if (getLocalTime(&timeinfo)) {
+  if (timeAvailable) {
     Serial.print("Timestamp: ");
-    Serial.println(&timeinfo, "%Y-%m-%d %H:%M:%S");
+    Serial.println(
+      &timeinfo,
+      "%Y-%m-%d %H:%M:%S"
+    );
   }
 
   Serial.print("Soil Moisture Raw: ");
@@ -112,6 +236,23 @@ void loop() {
   Serial.println(" hPa");
 
   Serial.println("================================");
+  Serial.println();
+
+
+  // --- Send reading to API ---
+  if (timeAvailable) {
+    sendReading(
+      rawMoisture,
+      moisturePercent,
+      temperature,
+      humidity,
+      pressure,
+      timeinfo
+    );
+  } else {
+    Serial.println("Skipping POST because time is unavailable.");
+  }
+
   Serial.println();
 
   delay(10000);
