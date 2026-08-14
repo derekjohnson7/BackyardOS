@@ -8,6 +8,13 @@ DATABASE_URL = os.getenv(
     "sqlite:///./backyardos.db"
 )
 
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1
+    )
+
 connect_args = {}
 
 if DATABASE_URL.startswith("sqlite"):
