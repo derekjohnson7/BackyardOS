@@ -56,9 +56,50 @@
 
 ## Next Milestone
 
-### v0.6.0 — Networked Telemetry Pipeline
+### v0.6.0 — Networked Telemetry Pipeline (COMPLETE)
 
-- Connect ESP32 directly to FastAPI.
-- Send readings as JSON.
-- Add persistent device ID.
-- Store physical sensor readings automatically in SQLite.
+### Added
+- Deployed FastAPI backend to Render.
+- Added managed PostgreSQL persistence through Render Postgres.
+- Added environment-based database configuration using `DATABASE_URL`.
+- Added PostgreSQL support using `psycopg`.
+- Added HTTPS telemetry transmission from the ESP32.
+- Added JSON serialization of environmental readings.
+- Added persistent sensor node ID: `backyard-node-01`.
+- Added automatic sensor uploads to `POST /readings`.
+- Added Wi-Fi connection timeout behavior to prevent indefinite blocking.
+
+### Verified
+- ESP32 successfully connects to Wi-Fi.
+- NTP timestamps are generated on the sensor node.
+- Real soil moisture, temperature, humidity, and pressure readings are transmitted over HTTPS.
+- FastAPI successfully validates incoming telemetry.
+- PostgreSQL successfully persists sensor readings.
+- `GET /readings` returns stored physical sensor observations.
+- End-to-end pipeline verified:
+
+  `Sensors -> ESP32 -> Wi-Fi -> HTTPS/JSON -> FastAPI -> PostgreSQL`
+
+### Fixed
+- Diagnosed persistent Wi-Fi authentication and association failures on the original ESP32.
+- Isolated the fault by testing multiple networks, firmware versions, and a second ESP32.
+- Replaced the failing ESP32 board and restored network connectivity.
+- Corrected soil moisture sensor wiring from GPIO32 to GPIO35.
+
+### Notes
+- Local backend development continues to use SQLite as a fallback when `DATABASE_URL` is not defined.
+- Hosted production-style persistence uses PostgreSQL.
+- Current telemetry interval remains 10 seconds for development testing.
+- HTTPS currently uses `WiFiClientSecure::setInsecure()` and certificate verification will be improved in 
+a future milestone.
+
+## Next Milestone
+
+### v0.7.0 — Reliable Telemetry
+
+- Add automatic Wi-Fi reconnection behavior.
+- Add failed-request retry handling.
+- Reduce telemetry frequency for long-term monitoring.
+- Improve HTTPS certificate validation.
+- Standardize timestamp handling.
+- Add basic authentication for sensor write requests.
