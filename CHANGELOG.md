@@ -93,8 +93,6 @@
 - HTTPS currently uses `WiFiClientSecure::setInsecure()` and certificate verification will be improved in 
 a future milestone.
 
-## Next Milestone
-
 ## v0.7.0 — Reliable Telemetry (COMPLETE)
 
 ### Added
