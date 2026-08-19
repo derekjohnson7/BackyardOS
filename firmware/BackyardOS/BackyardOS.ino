@@ -131,6 +131,7 @@ void sendReading(
     );
 
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-Key", API_KEY);
 
     int httpResponseCode = http.POST(jsonPayload);
 
