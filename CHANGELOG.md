@@ -54,8 +54,6 @@
 - Automatic database initialization.
 - Dependency management through `requirements.txt`.
 
-## Next Milestone
-
 ### v0.6.0 — Networked Telemetry Pipeline (COMPLETE)
 
 ### Added
