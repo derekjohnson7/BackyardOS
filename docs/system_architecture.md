@@ -5,7 +5,7 @@ BackyardOS is organized into separate sensing, network, backend, storage, and vi
 ## Current Architecture
 
 ```text
-             Backyard Environment
+                         Backyard Environment
                      |
         +------------+------------+
         |                         |
@@ -23,26 +23,28 @@ BackyardOS is organized into separate sensing, network, backend, storage, and vi
               | Sensor Node |
               +-------------+
                      |
-                     | Wi-Fi
+              Wi-Fi / HTTPS
                      |
-                     | HTTP / JSON
+              TLS + API Key
+                     |
                      ▼
               +-------------+
               |   FastAPI   |
-              |   Backend   |
+              |   Render    |
               +-------------+
                      |
-                     | SQLModel
+                  SQLModel
+                     |
                      ▼
               +-------------+
-              |   SQLite    |
-              |  Database   |
+              | PostgreSQL  |
+              |   Render    |
               +-------------+
                      |
                      ▼
               +-------------+
               |  Dashboard  |
-              |   Planned   |
+              |   v0.8.0    |
               +-------------+
 ```
 
