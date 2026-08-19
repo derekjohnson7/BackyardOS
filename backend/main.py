@@ -1,8 +1,13 @@
-from fastapi import FastAPI, Depends
+import os
+
+from fastapi import FastAPI, Depends, Header, HTTPException
 from sqlmodel import Session, select
 
 from database import create_db_and_tables, get_session
 from models import SensorReading, SensorReadingCreate
+
+API_KEY = os.getenv("API_KEY")
+
 
 app = FastAPI(
      docs_url="/docs",
@@ -10,6 +15,18 @@ app = FastAPI(
      openapi_url="/openapi.json"
 )
 
+def verify_api_key(x_api_key: str = Header(...)):
+    if API_KEY is None:
+        raise HTTPException(
+            status_code=500,
+            detail="API key is not configured"
+        )
+
+    if x_api_key != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key"
+        )
 
 @app.on_event("startup")
 def on_startup():
@@ -24,7 +41,8 @@ def home():
 @app.post("/readings")
 def create_reading(
     reading: SensorReadingCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: None = Depends(verify_api_key)
 ):
     db_reading = SensorReading(**reading.model_dump())
 

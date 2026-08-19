@@ -18,8 +18,8 @@ const int wetValue = 1090;
 
 // --- Time ---
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = -6 * 3600;   // Central Standard Time
-const int daylightOffset_sec = 3600;    // Daylight Saving Time
+const long gmtOffset_sec = -6 * 3600;
+const int daylightOffset_sec = 3600;
 
 
 // --- WiFi event logging ---
@@ -28,6 +28,48 @@ void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
     Serial.print("WiFi disconnect reason code: ");
     Serial.println(info.wifi_sta_disconnected.reason);
   }
+}
+
+
+// --- WiFi connection / recovery ---
+bool connectWiFi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+
+  Serial.print("Connecting to ");
+  Serial.println(WIFI_SSID);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  unsigned long startAttemptTime = millis();
+  const unsigned long wifiTimeout = 10000;
+
+  while (
+    WiFi.status() != WL_CONNECTED &&
+    millis() - startAttemptTime < wifiTimeout
+  ) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected!");
+
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    Serial.print("RSSI: ");
+    Serial.println(WiFi.RSSI());
+
+    return true;
+  }
+
+  Serial.println("WiFi connection FAILED.");
+  return false;
 }
 
 
@@ -64,34 +106,61 @@ void sendReading(
   jsonPayload += "\"pressure_hpa\":" + String(pressure, 2);
   jsonPayload += "}";
 
-  WiFiClientSecure client;
-  client.setInsecure();
+  const int maxAttempts = 3;
 
-  HTTPClient http;
+  for (int attempt = 1; attempt <= maxAttempts; attempt++) {
 
-  http.begin(
-    client,
-    "https://backyardos.onrender.com/readings"
-  );
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi lost during POST attempts.");
+      return;
+    }
 
-  http.addHeader("Content-Type", "application/json");
+    Serial.print("POST attempt ");
+    Serial.print(attempt);
+    Serial.print(" of ");
+    Serial.println(maxAttempts);
 
-  int httpResponseCode = http.POST(jsonPayload);
+    WiFiClientSecure client;
+    client.setInsecure();
 
-  Serial.print("POST response code: ");
-  Serial.println(httpResponseCode);
+    HTTPClient http;
 
-  if (httpResponseCode > 0) {
-    String response = http.getString();
+    http.begin(
+      client,
+      "https://backyardos.onrender.com/readings"
+    );
 
-    Serial.print("Server response: ");
-    Serial.println(response);
-  } else {
+    http.addHeader("Content-Type", "application/json");
+
+    int httpResponseCode = http.POST(jsonPayload);
+
+    Serial.print("POST response code: ");
+    Serial.println(httpResponseCode);
+
+    if (httpResponseCode >= 200 && httpResponseCode < 300) {
+      String response = http.getString();
+
+      Serial.print("Server response: ");
+      Serial.println(response);
+
+      http.end();
+
+      Serial.println("POST successful.");
+      return;
+    }
+
     Serial.print("POST failed: ");
     Serial.println(http.errorToString(httpResponseCode));
+
+    http.end();
+
+    if (attempt < maxAttempts) {
+      Serial.println("Retrying in 2 seconds...");
+      delay(2000);
+    }
   }
 
-  http.end();
+  Serial.println("POST failed after 3 attempts.");
 }
 
 
@@ -118,46 +187,12 @@ void setup() {
   WiFi.onEvent(onWiFiEvent);
 
 
-  // --- WiFi ---
-  WiFi.disconnect(true);
-  delay(1000);
-
-  WiFi.mode(WIFI_STA);
-  delay(500);
-
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  unsigned long startAttemptTime = millis();
-  const unsigned long wifiTimeout = 10000;  // 10 seconds
-
-  while (
-    WiFi.status() != WL_CONNECTED &&
-    millis() - startAttemptTime < wifiTimeout
-  ) {
-    delay(500);
-
-    Serial.print("WiFi status: ");
-    Serial.println(WiFi.status());
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected!");
-
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
-    Serial.print("RSSI: ");
-    Serial.println(WiFi.RSSI());
-  } else {
-    Serial.println("WiFi connection FAILED.");
-  }
+  // --- Initial WiFi connection ---
+  bool wifiConnected = connectWiFi();
 
 
   // --- NTP time ---
-  if (WiFi.status() == WL_CONNECTED) {
+  if (wifiConnected) {
     configTime(
       gmtOffset_sec,
       daylightOffset_sec,
@@ -174,6 +209,25 @@ void setup() {
 
 
 void loop() {
+
+  // --- WiFi recovery ---
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi connection lost. Attempting reconnect...");
+
+    bool reconnected = connectWiFi();
+
+    if (reconnected) {
+      configTime(
+        gmtOffset_sec,
+        daylightOffset_sec,
+        ntpServer
+      );
+
+      Serial.println("Time synchronization requested after reconnect.");
+    }
+  }
+
+
   // --- Time ---
   struct tm timeinfo;
 
@@ -255,5 +309,5 @@ void loop() {
 
   Serial.println();
 
-  delay(10000);
+  delay(600000);
 }
