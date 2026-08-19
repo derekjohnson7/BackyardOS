@@ -51,7 +51,8 @@ The backend uses:
 
 - FastAPI
 - SQLModel
-- SQLite
+- PostgreSQL on Render for hosted persistence
+- SQLite as a local-development fallback
 - Uvicorn
 
 Current endpoints:
