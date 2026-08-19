@@ -6,7 +6,7 @@ The project began after repeatedly losing plants to suspected root rot caused by
 
 ## Current Status
 
-BackyardOS is currently at **v0.5.0**.
+BackyardOS is currently at **v0.8.0**.
 
 The system can:
 
@@ -65,20 +65,6 @@ Current prototype reference values:
 These values are preliminary and will be refined through additional field testing.
 
 ## Roadmap
-
-### v0.6.0 — Networked Telemetry Pipeline
-
-- Send ESP32 readings to FastAPI using HTTP POST.
-- Serialize sensor readings as JSON.
-- Add a persistent device ID.
-- Verify physical sensor readings are automatically stored in SQLite.
-
-### v0.7.0 — Reliable Telemetry
-
-- Handle Wi-Fi interruptions.
-- Handle failed API requests.
-- Add retry behavior.
-- Improve timestamp and connection handling.
 
 ### v0.8.0 — Dashboard MVP
 
