@@ -6,25 +6,31 @@ The project began after repeatedly losing plants to suspected root rot caused by
 
 ## Current Status
 
-BackyardOS is currently at **v0.8.0**.
+BackyardOS is currently at **v0.8.0 — Dashboard MVP**.
 
 The system can:
 
 - Measure soil moisture using a capacitive moisture sensor.
 - Measure temperature, humidity, and atmospheric pressure using a BME280.
 - Connect an ESP32 sensor node to Wi-Fi.
-- Synchronize timestamps using NTP.
-- Generate timestamped environmental observations.
-- Accept sensor readings through a FastAPI backend.
-- Store and retrieve readings using SQLModel and SQLite.
+- Synchronize timestamps using NTP and transmit readings in UTC.
+- Automatically reconnect after Wi-Fi interruptions.
+- Retry failed telemetry requests.
+- Send authenticated HTTPS telemetry using an API key.
+- Validate the backend TLS certificate chain.
+- Accept sensor readings through a hosted FastAPI backend.
+- Persist sensor readings in Render PostgreSQL using SQLModel.
+- Retrieve historical sensor readings through the API.
 
-The ESP32 sensor node and backend are currently functional as separate components.
+The complete telemetry pipeline is operational:
 
-The next milestone is to connect them so that the ESP32 automatically sends sensor readings to the FastAPI backend over HTTP.
+`Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> API Key Auth -> FastAPI -> PostgreSQL`
+
+The current milestone is focused on building the first dashboard for viewing current conditions and historical sensor trends.
 
 ## Architecture
 
-Sensors -> ESP32 -> Wi-Fi/HTTP -> FastAPI -> SQLModel -> SQLite -> Dashboard
+Sensors -> ESP32 -> Wi-Fi/HTTPS -> FastAPI -> SQLModel -> PostgreSQL -> Dashboard
 
 ## Hardware
 
