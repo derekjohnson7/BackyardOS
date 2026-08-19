@@ -90,4 +90,3 @@ The full telemetry pipeline is operational:
 `Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> API Key Auth -> FastAPI -> SQLModel -> PostgreSQL`
 
 The current development focus is **v0.8.0 — Dashboard MVP**, which will provide visualization of current and historical environmental conditions.
-ESP32 -> HTTP POST -> FastAPI
