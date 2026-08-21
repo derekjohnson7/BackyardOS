@@ -18,8 +18,26 @@ const int wetValue = 1090;
 
 // --- Time ---
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = -6 * 3600;
-const int daylightOffset_sec = 3600;
+const long gmtOffset_sec = 0;
+const int daylightOffset_sec = 0;
+
+
+// --- Google Trust Services Root CA ---
+const char* root_ca = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQYD
+VQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEUMBIG
+A1UEAxMLR1RTIFJvb3QgUjQwHhcNMTYwNjIyMDAwMDAwWhcNMzYwNjIyMDAwMDAw
+WjBHMQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2Vz
+IExMQzEUMBIGA1UEAxMLR1RTIFJvb3QgUjQwdjAQBgcqhkjOPQIBBgUrgQQAIgNi
+AATzdHOnaItgrkO4NcWBMHtLSZ37wWHO5t5GvWvVYRg1rkDdc/eJkTBa6zzuhXyi
+QHY7qca4R9gq55KRanPpsXI5nymfopjTX15YhmUPoYRlBtHci8nHc8iMai/lxKvR
+HYqjQjBAMA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+BBSATNbrdP9JNqPV2Py1PsVq8JQdjDAKBggqhkjOPQQDAwNpADBmAjEA6ED/g94D
+9J+uHXqnLrmvT/aDHQ4thQEd0dlq7A/Cr8deVl5c1RxYIigL9zC2L7F8AjEA8GE8
+p/SgguMh1YQdc4acLa/KNJvxn7kjNuK8YAOdgLOaVsjh4rsUecrNIdSUtUlD
+-----END CERTIFICATE-----
+)EOF";
 
 
 // --- WiFi event logging ---
@@ -92,7 +110,7 @@ void sendReading(
   strftime(
     timestamp,
     sizeof(timestamp),
-    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%SZ",
     &timeinfo
   );
 
@@ -121,7 +139,9 @@ void sendReading(
     Serial.println(maxAttempts);
 
     WiFiClientSecure client;
-    client.setInsecure();
+
+    // Validate Render's TLS certificate against GTS Root R4.
+    client.setCACert(root_ca);
 
     HTTPClient http;
 
@@ -200,7 +220,7 @@ void setup() {
       ntpServer
     );
 
-    Serial.println("Time synchronization requested.");
+    Serial.println("UTC time synchronization requested.");
   } else {
     Serial.println("Skipping NTP setup because WiFi is not connected.");
   }
@@ -224,7 +244,7 @@ void loop() {
         ntpServer
       );
 
-      Serial.println("Time synchronization requested after reconnect.");
+      Serial.println("UTC time synchronization requested after reconnect.");
     }
   }
 
@@ -264,7 +284,7 @@ void loop() {
   Serial.println("========== BackyardOS ==========");
 
   if (timeAvailable) {
-    Serial.print("Timestamp: ");
+    Serial.print("UTC Timestamp: ");
     Serial.println(
       &timeinfo,
       "%Y-%m-%d %H:%M:%S"
