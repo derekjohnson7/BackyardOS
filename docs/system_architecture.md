@@ -5,7 +5,7 @@ BackyardOS is organized into separate sensing, network, backend, storage, and vi
 ## Current Architecture
 
 ```text
-             Backyard Environment
+                         Backyard Environment
                      |
         +------------+------------+
         |                         |
@@ -23,26 +23,28 @@ BackyardOS is organized into separate sensing, network, backend, storage, and vi
               | Sensor Node |
               +-------------+
                      |
-                     | Wi-Fi
+              Wi-Fi / HTTPS
                      |
-                     | HTTP / JSON
+              TLS + API Key
+                     |
                      ▼
               +-------------+
               |   FastAPI   |
-              |   Backend   |
+              |   Render    |
               +-------------+
                      |
-                     | SQLModel
+                  SQLModel
+                     |
                      ▼
               +-------------+
-              |   SQLite    |
-              |  Database   |
+              | PostgreSQL  |
+              |   Render    |
               +-------------+
                      |
                      ▼
               +-------------+
               |  Dashboard  |
-              |   Planned   |
+              |   v0.8.0    |
               +-------------+
 ```
 
@@ -55,34 +57,36 @@ The ESP32 currently:
 - Reads soil moisture.
 - Reads temperature, humidity, and pressure.
 - Connects to Wi-Fi.
-- Synchronizes time using NTP.
-- Prints timestamped readings to Serial.
+- Automatically attempts reconnection after network loss.
+- Synchronizes UTC time using NTP.
+- Generates timestamped environmental readings.
+- Sends telemetry over HTTPS.
+- Authenticates write requests using an API key.
+- Validates the backend TLS certificate chain.
+- Retries failed telemetry requests up to three times.
+- Sends readings every 10 minutes.
 
 ### FastAPI Backend
 
 The backend currently:
 
-- Accepts sensor readings.
-- Validates incoming data.
-- Stores readings in SQLite.
-- Retrieves historical readings.
+- Runs as a hosted Render web service.
+- Accepts authenticated sensor readings through `POST /readings`.
+- Validates incoming telemetry.
+- Provides historical readings through `GET /readings`.
+- Uses SQLModel for persistence.
+- Reads configuration and secrets from environment variables.
 
 ### Database
 
-SQLite is used for local persistence through SQLModel.
+Render PostgreSQL is used for hosted persistent storage.
+
+SQLite remains available as a local-development fallback when `DATABASE_URL` is not defined.
 
 ## Current System Status
 
-Working:
+The full telemetry pipeline is operational:
 
-Sensors -> ESP32 -> Serial Output
+`Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> API Key Auth -> FastAPI -> SQLModel -> PostgreSQL`
 
-Working separately:
-
-API Request -> FastAPI -> SQLModel -> SQLite
-
-Not yet connected:
-
-ESP32 -> HTTP POST -> FastAPI
-
-Connecting these two systems is the goal of v0.6.0.
+The current development focus is **v0.8.0 — Dashboard MVP**, which will provide visualization of current and historical environmental conditions.
