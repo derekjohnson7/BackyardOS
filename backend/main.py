@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from database import create_db_and_tables, get_session
 from models import SensorReading, SensorReadingCreate
+from fastapi.middleware.cors import CORSMiddleware
 
 API_KEY = os.getenv("API_KEY")
 
@@ -13,6 +14,16 @@ app = FastAPI(
      docs_url="/docs",
      redoc_url="/redoc",
      openapi_url="/openapi.json"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 def verify_api_key(x_api_key: str = Header(...)):
