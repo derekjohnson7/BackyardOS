@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -199,7 +199,7 @@ function SettingsSheet({ open, onClose, urlDraft, setUrlDraft, onConnect, autoRe
         </label>
         <div className="sheet-status">
           <span className={`status-dot ${status}`} />
-          {status === "idle" && <span>not connected \u2014 sample data shown</span>}
+          {status === "idle" && <span>not connected</span>}
           {status === "loading" && <span>fetching\u2026</span>}
           {status === "ok" && <span>live \u00b7 synced {lastFetched ? lastFetched.toLocaleTimeString() : ""}</span>}
           {status === "error" && <span className="status-error">error: {errorMsg}</span>}
@@ -218,7 +218,6 @@ export default function SensorDashboard() {
   localStorage.getItem("backyardos_backend_url") || ""
   );
   const [rows, setRows] = useState([]);
-  const [isDemo, setIsDemo] = useState(false);
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [lastFetched, setLastFetched] = useState(null);
@@ -239,7 +238,6 @@ export default function SensorDashboard() {
       const data = await res.json();
       if (!Array.isArray(data)) throw new Error("Response was not a JSON array");
       setRows(data);
-      setIsDemo(false);
       setStatus("ok");
       setLastFetched(new Date());
     } catch (err) {
