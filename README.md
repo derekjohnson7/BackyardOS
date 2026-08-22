@@ -85,5 +85,11 @@ These values are preliminary and will be refined through additional field testin
 - [x] Connect dashboard to hosted FastAPI backend.
 - [x] Add automatic refresh and backend retry handling.
 - [x] Improve UTC/local timestamp handling.
+- [x] Add node freshness states: LIVE, STALE, and OFFLINE.
 - [x] Add soil-condition status indicators.
-- [x] Add simple time-range controls.
+- [x] Add 6H, 24H, and 7D time-range controls.
+- [x] Convert dashboard temperature display from Celsius to Fahrenheit.
+- [x] Add metric-specific chart scaling.
+- [x] Verify responsive mobile layout.
+- [ ] Add empty-state handling for filtered charts.
+- [ ] Refine soil-condition thresholds using collected field data.

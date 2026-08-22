@@ -129,10 +129,42 @@ a future milestone.
 
 ## Next Milestone
 
-### v0.8.0 — Dashboard MVP
+## v0.8.0 — Dashboard MVP (IN PROGRESS)
 
-- Build an initial dashboard for viewing stored sensor readings.
-- Display current soil moisture, temperature, humidity, and pressure.
-- Add historical trend visualization.
-- Convert stored UTC timestamps to local time for display.
-- Begin defining plant-health thresholds and status indicators.
+### Added
+- Built React/Vite dashboard for live and historical sensor telemetry.
+- Added soil moisture, temperature, humidity, and pressure readouts.
+- Added Recharts-based historical trend visualization.
+- Added 6-hour, 24-hour, and 7-day chart filtering.
+- Added automatic dashboard refresh every 30 seconds.
+- Added retry handling for Render cold starts.
+- Added persistent backend URL configuration using localStorage.
+- Added node freshness states:
+  - LIVE
+  - STALE
+  - OFFLINE
+- Added soil-condition classifications:
+  - DRY
+  - HEALTHY
+  - WET
+  - SATURATED
+- Added Fahrenheit temperature display while retaining Celsius in stored telemetry.
+- Added metric-specific chart domains for improved trend interpretation.
+
+### Improved
+- Standardized timestamp parsing for UTC backend timestamps.
+- Converted stored UTC timestamps to local time for dashboard display.
+- Improved chart spacing and Y-axis readability.
+- Improved mobile responsiveness and verified dashboard rendering at mobile widths.
+- Preserved support for multiple future sensor nodes.
+
+### Testing
+- Began continuous multi-day telemetry collection using a controlled soil sample.
+- Soil sample will be allowed to dry naturally and periodically re-saturated to observe moisture trends over time.
+- Collected data will be used to evaluate sensor stability, soil dry-down behavior, dashboard time-range controls, and preliminary soil-condition thresholds.
+
+### Notes
+- Soil-condition thresholds are currently provisional and will be refined using collected sensor data.
+- The ESP32 currently reports telemetry every 10 minutes.
+- Temperature remains stored and transmitted in Celsius; Fahrenheit conversion occurs only in the dashboard presentation layer.
+- Additional chart empty-state handling remains planned before v0.8.0 is considered complete.
