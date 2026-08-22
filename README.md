@@ -21,12 +21,16 @@ The system can:
 - Accept sensor readings through a hosted FastAPI backend.
 - Persist sensor readings in Render PostgreSQL using SQLModel.
 - Retrieve historical sensor readings through the API.
+- Display live and historical sensor data in a React/Vite dashboard.
+- Automatically reconnect to the saved backend URL on page load.
+- Auto-refresh dashboard data every 30 seconds.
+- Retry dashboard requests during Render cold starts.
 
 The complete telemetry pipeline is operational:
 
-`Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> API Key Auth -> FastAPI -> PostgreSQL`
+`Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> FastAPI -> PostgreSQL -> React Dashboard`
 
-The current milestone is focused on building the first dashboard for viewing current conditions and historical sensor trends.
+The current milestone is focused on refining the dashboard with improved timestamp handling, plant-health indicators, and additional environmental context.
 
 ## Architecture
 
@@ -75,6 +79,11 @@ These values are preliminary and will be refined through additional field testin
 
 ### v0.8.0 — Dashboard MVP
 
-- Visualize soil moisture over time.
-- Visualize temperature and humidity.
-- Display recent sensor readings.
+- [x] Build React/Vite dashboard foundation.
+- [x] Display soil moisture, temperature, humidity, and pressure.
+- [x] Visualize historical sensor trends.
+- [x] Connect dashboard to hosted FastAPI backend.
+- [x] Add automatic refresh and backend retry handling.
+- [ ] Improve UTC/local timestamp handling.
+- [ ] Add soil/plant-health status indicators.
+- [ ] Add simple time-range controls.
