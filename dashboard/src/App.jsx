@@ -200,7 +200,9 @@ function SettingsSheet({ open, onClose, urlDraft, setUrlDraft, onConnect, autoRe
         <div className="sheet-status">
           <span className={`status-dot ${status}`} />
           {status === "idle" && <span>not connected</span>}
-          {status === "loading" && <span>fetching\u2026</span>}
+          {status === "loading" && (
+            <span>{errorMsg || "fetching…"}</span>
+          )}
           {status === "ok" && <span>live \u00b7 synced {lastFetched ? lastFetched.toLocaleTimeString() : ""}</span>}
           {status === "error" && <span className="status-error">error: {errorMsg}</span>}
         </div>
@@ -221,7 +223,7 @@ export default function SensorDashboard() {
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [lastFetched, setLastFetched] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [activeMetrics, setActiveMetrics] = useState({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeStation, setActiveStation] = useState(0);
@@ -230,19 +232,43 @@ export default function SensorDashboard() {
 
   const fetchData = useCallback(async (url) => {
     if (!url) return;
+
+    const maxAttempts = 3;
+    const retryDelay = 5000;
+
     setStatus("loading");
     setErrorMsg("");
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Response was not a JSON array");
-      setRows(data);
-      setStatus("ok");
-      setLastFetched(new Date());
-    } catch (err) {
-      setStatus("error");
-      setErrorMsg(err.message || "Fetch failed");
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Response was not a JSON array");
+        }
+
+        setRows(data);
+        setStatus("ok");
+        setLastFetched(new Date());
+
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts) {
+          setStatus("error");
+          setErrorMsg(err.message || "Fetch failed");
+          return;
+        }
+
+        setErrorMsg(`Backend waking up... retrying (${attempt}/${maxAttempts})`);
+
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      }
     }
   }, []);
 
