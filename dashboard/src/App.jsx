@@ -234,7 +234,7 @@ export default function SensorDashboard() {
     if (!url) return;
 
     const maxAttempts = 3;
-    const retryDelay = 5000;
+    const retryDelay = 10000;
 
     setStatus("loading");
     setErrorMsg("");
