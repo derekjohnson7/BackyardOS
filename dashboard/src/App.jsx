@@ -18,10 +18,32 @@ const METRICS = [
     color: "var(--ember)",
     digits: 1,
     transform: (value) => (value * 9) / 5 + 32,
+    domain: [40, 120],
   },
-  { key: "humidity_pct", label: "Humidity", unit: "%", color: "var(--dew)", digits: 1 },
-  { key: "pressure_hpa", label: "Pressure", unit: "hPa", color: "var(--mist)", digits: 1 },
-  { key: "soil_moisture_pct", label: "Soil", unit: "%", color: "var(--bloom)", digits: 1 },
+  {
+    key: "humidity_pct",
+    label: "Humidity",
+    unit: "%",
+    color: "var(--dew)",
+    digits: 1,
+    domain: [0, 100],
+  },
+  {
+    key: "pressure_hpa",
+    label: "Pressure",
+    unit: "hPa",
+    color: "var(--mist)",
+    digits: 1,
+    domain: [980, 1040],
+  },
+  {
+    key: "soil_moisture_pct",
+    label: "Soil",
+    unit: "%",
+    color: "var(--bloom)",
+    digits: 1,
+    domain: [0, 100],
+  },
 ];
 
 const TIME_RANGES = [
@@ -212,7 +234,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
     <div className="station-card">
       <div className="station-head">
         <div>
-          <div className="station-eyebrow">PANE {String(index + 1).padStart(2, "0")}</div>
+          <div className="station-eyebrow">PROBE {String(index + 1).padStart(2, "0")}</div>
           <h3 className="station-id">{deviceId}</h3>
         </div>
         <div className="station-status-wrap">
@@ -280,10 +302,10 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
       </div>
       <div className="chart-wrap">
         <ResponsiveContainer width="100%" height={130}>
-          <LineChart data={chartData} margin={{ top: 8, right: 6, bottom: 0, left: -20 }}>
+          <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 10 }}>
             <CartesianGrid stroke="var(--glass-line)" strokeDasharray="2 4" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={{ stroke: "var(--glass-line)" }} minTickGap={40} />
-            <YAxis tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} width={36} domain={["auto", "auto"]} />
+            <YAxis tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} width={42} domain={metric.domain} />
             <Tooltip
               contentStyle={{ background: "var(--surface-solid)", border: "1px solid var(--glass-line)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)" }}
               labelStyle={{ color: "var(--ink-dim)" }}
@@ -997,7 +1019,7 @@ export default function SensorDashboard() {
               onClick={() => setActiveStation(i)}
             >
               <span className="tab-dot" style={{ background: activeStation === i ? "var(--dew)" : "var(--ink-dim)" }} />
-              PANE {String(i + 1).padStart(2, "0")}
+              PROBE {String(i + 1).padStart(2, "0")}
             </button>
           ))}
         </div>
