@@ -206,7 +206,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
             : r[activeMetric]
           : null,
     }));
-}, [readings, activeMetric, timeRange]);
+}, [readings, activeMetric, timeRange, metric]);
 
   return (
     <div className="station-card">
