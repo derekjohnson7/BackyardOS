@@ -84,6 +84,6 @@ These values are preliminary and will be refined through additional field testin
 - [x] Visualize historical sensor trends.
 - [x] Connect dashboard to hosted FastAPI backend.
 - [x] Add automatic refresh and backend retry handling.
-- [ ] Improve UTC/local timestamp handling.
-- [ ] Add soil/plant-health status indicators.
-- [ ] Add simple time-range controls.
+- [x] Improve UTC/local timestamp handling.
+- [x] Add soil/plant-health status indicators.
+- [x] Add simple time-range controls.

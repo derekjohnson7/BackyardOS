@@ -11,21 +11,72 @@ import {
 
 
 const METRICS = [
-  { key: "temperature_c", label: "Temp", unit: "\u00b0C", color: "var(--ember)", digits: 1 },
+  {
+    key: "temperature_c",
+    label: "Temp",
+    unit: "°F",
+    color: "var(--ember)",
+    digits: 1,
+    transform: (value) => (value * 9) / 5 + 32,
+  },
   { key: "humidity_pct", label: "Humidity", unit: "%", color: "var(--dew)", digits: 1 },
   { key: "pressure_hpa", label: "Pressure", unit: "hPa", color: "var(--mist)", digits: 1 },
   { key: "soil_moisture_pct", label: "Soil", unit: "%", color: "var(--bloom)", digits: 1 },
 ];
 
+const TIME_RANGES = [
+  { key: "6h", label: "6H", hours: 6 },
+  { key: "24h", label: "24H", hours: 24 },
+  { key: "7d", label: "7D", hours: 24 * 7 },
+];
+
+function parseTimestamp(ts) {
+  if (!ts) return null;
+
+  const hasTimezone =
+    ts.endsWith("Z") ||
+    /[+-]\d{2}:\d{2}$/.test(ts);
+
+  const normalized = hasTimezone ? ts : `${ts}Z`;
+
+  const d = new Date(normalized);
+
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getSoilStatus(pct) {
+  if (pct == null || Number.isNaN(pct)) {
+    return { label: "NO DATA", className: "no-data" };
+  }
+  if (pct < 30) {
+    return { label: "DRY", className: "dry" };
+  }
+  if (pct < 65) {
+    return { label: "HEALTHY", className: "healthy" };
+  }
+  if (pct < 85) {
+    return { label: "WET", className: "wet" };
+  }
+  return { label: "SATURATED", className: "saturated" };
+}
+
 function fmtTime(ts) {
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return ts;
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const d = parseTimestamp(ts);
+
+  if (!d) return ts;
+
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function timeAgo(ts) {
-  const d = new Date(ts);
-  if (isNaN(d.getTime())) return "";
+  const d = parseTimestamp(ts);
+
+  if (!d) return "";
   const diffMs = Date.now() - d.getTime();
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
@@ -35,13 +86,31 @@ function timeAgo(ts) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function getNodeStatus(ts) {
+  const d = parseTimestamp(ts);
+
+  if (!d) {
+    return { label: "NO DATA", className: "offline" };
+  }
+  const ageMinutes = (Date.now() - d.getTime()) / 60000;
+  if (ageMinutes < 20) {
+    return { label: "LIVE", className: "live" };
+  }
+  if (ageMinutes < 60) {
+    return { label: "STALE", className: "stale" };
+  }
+  return { label: "OFFLINE", className: "offline" };
+}
+
 function groupByDevice(rows) {
   const map = new Map();
   for (const row of rows) {
     if (!map.has(row.device_id)) map.set(row.device_id, []);
     map.get(row.device_id).push(row);
   }
-  for (const arr of map.values()) arr.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  for (const arr of map.values()) arr.sort(
+  (a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp)
+    );
   return map;
 }
 
@@ -106,12 +175,38 @@ function DewRing({ pct, size = 96 }) {
 
 function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }) {
   const latest = readings[readings.length - 1];
+  const [timeRange, setTimeRange] = useState("24h");
+  const soilStatus = latest
+  ? getSoilStatus(latest.soil_moisture_pct)
+  : { label: "NO DATA", className: "no-data" };
+  const nodeStatus = latest
+  ? getNodeStatus(latest.timestamp)
+  : { label: "NO DATA", className: "offline" };
   const metric = METRICS.find((m) => m.key === activeMetric) || METRICS[0];
 
-  const chartData = useMemo(
-    () => readings.map((r) => ({ label: fmtTime(r.timestamp), value: r[activeMetric] })),
-    [readings, activeMetric]
-  );
+  const chartData = useMemo(() => {
+  const selectedRange =
+    TIME_RANGES.find((range) => range.key === timeRange) || TIME_RANGES[1];
+
+  const cutoff =
+    Date.now() - selectedRange.hours * 60 * 60 * 1000;
+
+  return readings
+    .filter((r) => {
+      const timestamp = parseTimestamp(r.timestamp);
+
+      return timestamp && timestamp.getTime() >= cutoff;
+    })
+    .map((r) => ({
+      label: fmtTime(r.timestamp),
+      value:
+        r[activeMetric] != null
+          ? metric.transform
+            ? metric.transform(r[activeMetric])
+            : r[activeMetric]
+          : null,
+    }));
+}, [readings, activeMetric, timeRange]);
 
   return (
     <div className="station-card">
@@ -120,11 +215,25 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
           <div className="station-eyebrow">PANE {String(index + 1).padStart(2, "0")}</div>
           <h3 className="station-id">{deviceId}</h3>
         </div>
-        <div className="station-sync">{latest ? timeAgo(latest.timestamp) : "no data"}</div>
+        <div className="station-status-wrap">
+          <span className={`node-status ${nodeStatus.className}`}>
+            {nodeStatus.label}
+          </span>
+
+          <span className="station-sync">
+            {latest ? timeAgo(latest.timestamp) : "no data"}
+          </span>
+        </div>
       </div>
 
       <div className="station-body">
+       <div className="soil-summary">
         <DewRing pct={latest ? latest.soil_moisture_pct : 0} />
+
+        <span className={`soil-status ${soilStatus.className}`}>
+          {soilStatus.label}
+        </span>
+      </div>
 
         <div className="readout-grid">
           {METRICS.filter((m) => m.key !== "soil_moisture_pct").map((m) => (
@@ -133,7 +242,9 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
               <div>
                 <div className="readout-label">{m.label}</div>
                 <div className="readout-value">
-                  {latest && latest[m.key] != null ? latest[m.key].toFixed(m.digits) : "\u2014"}
+                  {latest && latest[m.key] != null
+                  ? (m.transform ? m.transform(latest[m.key]) : latest[m.key]).toFixed(m.digits)
+                  : "—"}
                   <span className="readout-unit">{m.unit}</span>
                 </div>
               </div>
@@ -154,7 +265,19 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
           </button>
         ))}
       </div>
-
+      <div className="time-range-tabs">
+        {TIME_RANGES.map((range) => (
+          <button
+            key={range.key}
+            className={`time-range-tab ${
+              timeRange === range.key ? "active" : ""
+            }`}
+            onClick={() => setTimeRange(range.key)}
+          >
+            {range.label}
+          </button>
+        ))}
+      </div>
       <div className="chart-wrap">
         <ResponsiveContainer width="100%" height={130}>
           <LineChart data={chartData} margin={{ top: 8, right: 6, bottom: 0, left: -20 }}>
@@ -648,56 +771,166 @@ export default function SensorDashboard() {
         }
 
         .insight-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+          margin-top: 16px;
+        }
 
-.insight-card {
-  min-height: 160px;
-  background: var(--glass);
-  border: 1px solid var(--glass-line);
-  border-radius: 20px;
-  padding: 20px;
-  backdrop-filter: blur(14px);
-}
+        .insight-card {
+          min-height: 160px;
+          background: var(--glass);
+          border: 1px solid var(--glass-line);
+          border-radius: 20px;
+          padding: 20px;
+          backdrop-filter: blur(14px);
+        }
 
-.insight-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: var(--dew);
-}
+        .insight-eyebrow {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          color: var(--dew);
+        }
 
-.insight-title {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 18px;
-  margin: 5px 0 12px;
-}
+        .insight-title {
+          font-family: var(--font-display);
+          font-weight: 600;
+          font-size: 18px;
+          margin: 5px 0 12px;
+        }
 
-.coming-soon {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ink-dim);
-}
+        .coming-soon {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--ink-dim);
+        }
 
-@media (max-width: 720px) {
-  .insight-grid {
-    grid-template-columns: 1fr;
-  }
-}
+        @media (max-width: 720px) {
+          .insight-grid {
+            grid-template-columns: 1fr;
+          }
+        }
 
         @media (prefers-reduced-motion: reduce) {
           .status-dot.loading { animation: none; }
+        }
+
+        .station-status-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .node-status {
+          font-family: var(--font-mono);
+          font-size: 8px;
+          font-weight: 500;
+          letter-spacing: 0.12em;
+          padding: 4px 7px;
+          border-radius: 999px;
+          border: 1px solid;
+        }
+
+        .node-status.live {
+          color: var(--dew);
+          border-color: var(--dew);
+          background: rgba(111, 230, 218, 0.08);
+        }
+
+        .node-status.stale {
+          color: var(--ember);
+          border-color: var(--ember);
+          background: rgba(244, 163, 95, 0.08);
+        }
+
+        .node-status.offline {
+          color: var(--bloom);
+          border-color: var(--bloom);
+          background: rgba(239, 159, 192, 0.08);
+        }
+        
+        .soil-summary {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .soil-status {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          font-weight: 500;
+          letter-spacing: 0.12em;
+          padding: 4px 8px;
+          border-radius: 999px;
+          border: 1px solid;
+        }
+
+        .soil-status.dry {
+          color: var(--ember);
+          border-color: var(--ember);
+          background: rgba(244, 163, 95, 0.08);
+        }
+
+        .soil-status.healthy {
+          color: var(--dew);
+          border-color: var(--dew);
+          background: rgba(111, 230, 218, 0.08);
+        }
+
+        .soil-status.wet {
+          color: var(--mist);
+          border-color: var(--mist);
+          background: rgba(179, 155, 224, 0.08);
+        }
+
+        .soil-status.saturated {
+          color: var(--bloom);
+          border-color: var(--bloom);
+          background: rgba(239, 159, 192, 0.08);
+        }
+
+        .soil-status.no-data {
+          color: var(--ink-dim);
+          border-color: var(--glass-line);
+          background: var(--glass);
+        }
+
+        .time-range-tabs {
+          display: flex;
+          justify-content: flex-end;
+          gap: 6px;
+          margin: 10px 0 6px;
+        }
+
+        .time-range-tab {
+          background: transparent;
+          border: 1px solid var(--glass-line);
+          color: var(--ink-dim);
+          border-radius: 999px;
+          padding: 4px 8px;
+          font-family: var(--font-mono);
+          font-size: 9px;
+          cursor: pointer;
+          transition: 0.2s ease;
+        }
+
+        .time-range-tab:hover {
+          background: var(--glass-hover);
+        }
+
+        .time-range-tab.active {
+          color: var(--dew);
+          border-color: var(--dew);
+          background: rgba(111, 230, 218, 0.08);
         }
       `}</style>
 
       <div className="dash-header">
         <div>
-          <div className="dash-eyebrow">GREENHOUSE TELEMETRY</div>
-          <h1 className="dash-title">Dusk & Dew</h1>
+          <div className="dash-eyebrow">BackyardOS</div>
+          <h1 className="dash-title">Environmental Monitoring System</h1>
           <div className="dash-sub">
             {deviceIds.length
               ? `${deviceIds.length} node${deviceIds.length === 1 ? "" : "s"} reporting`
