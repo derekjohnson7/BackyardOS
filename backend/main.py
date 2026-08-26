@@ -111,12 +111,14 @@ def get_weather():
     ):
         return weather_cache["data"]
 
-    url = "https://api.weatherapi.com/v1/current.json"
+    url = "https://api.weatherapi.com/v1/forecast.json"
 
     params = {
         "key": api_key,
         "q": f"{latitude},{longitude}",
+        "days": 1,
         "aqi": "no",
+        "alerts": "no",
     }
 
     try:
@@ -131,14 +133,29 @@ def get_weather():
 
     data = response.json()
     current = data["current"]
+    forecast_day = data["forecast"]["forecastday"][0]
 
     weather_data = {
-        "temperature_f": current["temp_f"],
-        "humidity_pct": current["humidity"],
-        "precipitation_in": current["precip_in"],
-        "weather_code": current["condition"]["code"],
-        "condition": current["condition"]["text"],
-        "wind_speed_mph": current["wind_mph"],
+    "temperature_f": current["temp_f"],
+    "feels_like_f": current["feelslike_f"],
+    "heat_index_f": current["heatindex_f"],
+    "humidity_pct": current["humidity"],
+    "dew_point_f": current["dewpoint_f"],
+    "uv_index": current["uv"],
+    "precipitation_in": current["precip_in"],
+    "weather_code": current["condition"]["code"],
+    "condition": current["condition"]["text"],
+    "wind_speed_mph": current["wind_mph"],
+    "wind_gust_mph": current["gust_mph"],
+    "wind_direction": current["wind_dir"],
+
+    "high_temp_f": forecast_day["day"]["maxtemp_f"],
+    "low_temp_f": forecast_day["day"]["mintemp_f"],
+    "chance_of_rain_pct": forecast_day["day"]["daily_chance_of_rain"],
+    "total_precipitation_in": forecast_day["day"]["totalprecip_in"],
+
+    "sunrise": forecast_day["astro"]["sunrise"],
+    "sunset": forecast_day["astro"]["sunset"],
     }
 
     weather_cache["data"] = weather_data
