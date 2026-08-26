@@ -84,11 +84,18 @@ def create_reading(
 def get_weather():
     latitude = os.getenv("WEATHER_LATITUDE")
     longitude = os.getenv("WEATHER_LONGITUDE")
+    api_key = os.getenv("WEATHER_API_KEY")
 
     if not latitude or not longitude:
         raise HTTPException(
             status_code=500,
             detail="Weather location is not configured"
+        )
+
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Weather API key is not configured"
         )
 
     now = datetime.utcnow()
@@ -100,33 +107,16 @@ def get_weather():
     ):
         return weather_cache["data"]
 
-    url = "https://api.open-meteo.com/v1/forecast"
+    url = "https://api.weatherapi.com/v1/current.json"
 
     params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "current": [
-            "temperature_2m",
-            "relative_humidity_2m",
-            "precipitation",
-            "weather_code",
-            "wind_speed_10m",
-        ],
-        "temperature_unit": "fahrenheit",
-        "wind_speed_unit": "mph",
-        "precipitation_unit": "inch",
-        "timezone": "auto",
+        "key": api_key,
+        "q": f"{latitude},{longitude}",
+        "aqi": "no",
     }
 
     try:
         response = requests.get(url, params=params, timeout=10)
-
-        if response.status_code == 429:
-            raise HTTPException(
-                status_code=503,
-                detail="Weather service is temporarily rate limited"
-            )
-
         response.raise_for_status()
 
     except requests.RequestException:
@@ -139,11 +129,12 @@ def get_weather():
     current = data["current"]
 
     weather_data = {
-        "temperature_f": current["temperature_2m"],
-        "humidity_pct": current["relative_humidity_2m"],
-        "precipitation_in": current["precipitation"],
-        "weather_code": current["weather_code"],
-        "wind_speed_mph": current["wind_speed_10m"],
+        "temperature_f": current["temp_f"],
+        "humidity_pct": current["humidity"],
+        "precipitation_in": current["precip_in"],
+        "weather_code": current["condition"]["code"],
+        "condition": current["condition"]["text"],
+        "wind_speed_mph": current["wind_mph"],
     }
 
     weather_cache["data"] = weather_data
