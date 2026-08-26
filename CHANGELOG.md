@@ -132,31 +132,22 @@ a future milestone.
 ## v0.8.0 — Dashboard MVP (IN PROGRESS)
 
 ### Added
-- Built React/Vite dashboard for live and historical sensor telemetry.
-- Added soil moisture, temperature, humidity, and pressure readouts.
-- Added Recharts-based historical trend visualization.
-- Added 6-hour, 24-hour, and 7-day chart filtering.
-- Added automatic dashboard refresh every 30 seconds.
-- Added retry handling for Render cold starts.
-- Added persistent backend URL configuration using localStorage.
-- Added node freshness states:
-  - LIVE
-  - STALE
-  - OFFLINE
-- Added soil-condition classifications:
-  - DRY
-  - HEALTHY
-  - WET
-  - SATURATED
-- Added Fahrenheit temperature display while retaining Celsius in stored telemetry.
-- Added metric-specific chart domains for improved trend interpretation.
+- Added WeatherAPI integration through the FastAPI backend.
+- Added `GET /weather` endpoint for external weather context.
+- Expanded weather integration from current conditions to one-day forecast data.
+- Added current temperature, feels-like temperature, daily high/low, rain chance, UV index, humidity, wind speed/direction, wind gusts, dew point, and sunset to the dashboard.
+- Added 15-minute backend weather caching.
+- Added 15-minute automatic weather refresh in the React dashboard.
+- Added last-successful weather refresh timestamp to help identify stale weather data.
+- Added mobile probe-switching UI that supports future multi-node deployments.
 
 ### Improved
-- Standardized timestamp parsing for UTC backend timestamps.
-- Converted stored UTC timestamps to local time for dashboard display.
-- Improved chart spacing and Y-axis readability.
-- Improved mobile responsiveness and verified dashboard rendering at mobile widths.
-- Preserved support for multiple future sensor nodes.
+- Added external weather context alongside locally measured backyard conditions.
+- Preserved the last successful weather fetch timestamp for observability.
+- Improved the Local Forecast card layout and responsive presentation.
+
+### Fixed
+- Restored the `GET /readings` endpoint after it was unintentionally removed during weather-backend development.
 
 ### Testing
 - Began continuous multi-day telemetry collection using a controlled soil sample.

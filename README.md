@@ -25,10 +25,22 @@ The system can:
 - Automatically reconnect to the saved backend URL on page load.
 - Auto-refresh dashboard data every 30 seconds.
 - Retry dashboard requests during Render cold starts.
+- Retrieve local weather and forecast context through WeatherAPI.
+- Display current temperature, feels-like temperature, daily high/low, rain chance, UV index, humidity, wind, dew point, and sunset.
+- Cache external weather responses for 15 minutes to reduce unnecessary API calls.
+- Refresh dashboard weather data every 15 minutes.
+- Display the timestamp of the last successful weather refresh.
+- Support mobile switching between multiple future sensor probes.
 
 The complete telemetry pipeline is operational:
 
+Sensor telemetry:
+
 `Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> FastAPI -> PostgreSQL -> React Dashboard`
+
+Weather context:
+
+`WeatherAPI -> FastAPI -> 15-minute cache -> React Dashboard`
 
 The current milestone is focused on refining the dashboard with improved timestamp handling, plant-health indicators, and additional environmental context.
 
@@ -64,6 +76,7 @@ Current endpoints:
 - `GET /`
 - `POST /readings`
 - `GET /readings`
+- `GET /weather`
 
 ## Soil Moisture Calibration
 
