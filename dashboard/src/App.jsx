@@ -979,19 +979,27 @@ export default function SensorDashboard() {
         .weather-content {
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 16px;
         }
 
         .weather-main {
           display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 16px;
+        }
+
+        .weather-main > div:first-child {
+          display: flex;
           align-items: baseline;
-          gap: 12px;
+          gap: 10px;
         }
 
         .weather-temp {
           font-family: var(--font-display);
-          font-size: 32px;
+          font-size: 36px;
           font-weight: 700;
+          line-height: 1;
         }
 
         .weather-condition {
@@ -1000,13 +1008,61 @@ export default function SensorDashboard() {
           color: var(--ink-dim);
         }
 
-        .weather-details {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 12px;
+        .weather-feels {
           font-family: var(--font-mono);
           font-size: 10px;
           color: var(--ink-dim);
+          white-space: nowrap;
+        }
+
+        .weather-highlight-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .weather-stat {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--glass-line);
+          border-radius: 10px;
+          padding: 9px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .weather-stat-label {
+          font-family: var(--font-mono);
+          font-size: 8px;
+          letter-spacing: 0.08em;
+          color: var(--ink-dim);
+        }
+
+        .weather-stat-value {
+          font-family: var(--font-mono);
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        .weather-details {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 14px;
+          font-family: var(--font-mono);
+          font-size: 10px;
+          color: var(--ink-dim);
+        }
+
+        @media (max-width: 720px) {
+          .weather-main {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .weather-highlight-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
       `}</style>
 
@@ -1064,25 +1120,64 @@ export default function SensorDashboard() {
       <div className="coming-soon">Weather unavailable</div>
     )}
 
-    {weather && weatherStatus === "ok" && (
-      <div className="weather-content">
-        <div className="weather-main">
-          <span className="weather-temp">
-            {weather.temperature_f.toFixed(0)}°F
-          </span>
+{weather && weatherStatus === "ok" && (
+  <div className="weather-content">
+    <div className="weather-main">
+      <div className="weather-primary">
+        <span className="weather-temp">
+          {weather.temperature_f.toFixed(0)}°F
+        </span>
 
-          <span className="weather-condition">
-            {weather.condition}
-          </span>
-        </div>
-
-        <div className="weather-details">
-          <span>Humidity {weather.humidity_pct}%</span>
-          <span>Wind {weather.wind_speed_mph} mph</span>
-          <span>Rain {weather.precipitation_in} in</span>
-        </div>
+        <span className="weather-condition">
+          {weather.condition}
+        </span>
       </div>
-    )}
+
+      <div className="weather-feels">
+        Feels like {weather.feels_like_f.toFixed(0)}°F
+      </div>
+    </div>
+
+    <div className="weather-highlight-grid">
+      <div className="weather-stat">
+        <span className="weather-stat-label">HIGH / LOW</span>
+        <span className="weather-stat-value">
+          {weather.high_temp_f.toFixed(0)}° / {weather.low_temp_f.toFixed(0)}°
+        </span>
+      </div>
+
+      <div className="weather-stat">
+        <span className="weather-stat-label">RAIN</span>
+        <span className="weather-stat-value">
+          {weather.chance_of_rain_pct}%
+        </span>
+      </div>
+
+      <div className="weather-stat">
+        <span className="weather-stat-label">UV INDEX</span>
+        <span className="weather-stat-value">
+          {weather.uv_index.toFixed(1)}
+        </span>
+      </div>
+
+      <div className="weather-stat">
+        <span className="weather-stat-label">HUMIDITY</span>
+        <span className="weather-stat-value">
+          {weather.humidity_pct}%
+        </span>
+      </div>
+    </div>
+
+    <div className="weather-details">
+      <span>
+        Wind {weather.wind_direction} {weather.wind_speed_mph} mph
+      </span>
+      <span>Gusts {weather.wind_gust_mph} mph</span>
+      <span>Dew point {weather.dew_point_f.toFixed(0)}°F</span>
+      <span>Sunset {weather.sunset}</span>
+    </div>
+  </div>
+)}
   </div>
 
   <div className="insight-card">
