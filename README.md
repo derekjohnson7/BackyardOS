@@ -114,5 +114,50 @@ These values are preliminary and will be refined through additional field testin
 - [x] Add 15-minute weather caching and refresh.
 - [x] Display last successful weather refresh time.
 - [x] Add mobile probe switching for future multi-node support.
+
+
+## Next Steps
+
+### Finish v0.8.0 — Dashboard MVP
+- [ ] Add stale-weather handling so the last successful weather data remains visible if a refresh fails.
 - [ ] Add empty-state handling for filtered charts.
 - [ ] Refine soil-condition thresholds using collected field data.
+- [ ] Continue validating sensor trends over multi-day dry-down and rewatering cycles.
+
+### v0.9.0 — Database Migration & Resilience
+- [ ] Migrate hosted PostgreSQL from Render to Supabase before the current Render database expires.
+- [ ] Verify historical readings after migration.
+- [ ] Update Render `DATABASE_URL` to point to Supabase.
+- [ ] Confirm ESP32 telemetry and dashboard history remain uninterrupted after migration.
+- [ ] Consider local buffering on the ESP32 so readings are not lost during network outages.
+
+### v0.10.0 — Outdoor Deployment
+- [ ] Move electronics from breadboard prototype to a more durable outdoor setup.
+- [ ] Design or 3D-print a weather-resistant enclosure.
+- [ ] Add protected ventilation for the BME280.
+- [ ] Route the soil probe through a sealed cable gland.
+- [ ] Validate Wi-Fi reliability and sensor behavior outdoors.
+- [ ] Begin with USB power before evaluating battery/solar operation.
+
+### Future — Agentic Environmental Intelligence
+- [ ] Add configurable plant and garden-bed profiles with different environmental needs.
+- [ ] Combine soil moisture, temperature, humidity, UV, rainfall probability, and forecast data into a unified environmental context.
+- [ ] Add deterministic rules for environmental hazards such as:
+  - extreme heat
+  - high UV exposure
+  - prolonged dry soil
+  - prolonged saturated soil
+  - freezing conditions
+  - heavy-rain or severe-weather risk
+- [ ] Add an agentic AI layer that evaluates current conditions, historical trends, forecasts, and plant profiles.
+- [ ] Generate prioritized recommendations for watering, drainage, heat protection, and other plant-care actions.
+- [ ] Allow the agent to evaluate multiple probes or garden zones and identify which areas require attention first.
+- [ ] Provide proactive alerts only when conditions warrant intervention.
+- [ ] Incorporate historical dry-down and watering behavior into future recommendations.
+- [ ] Track whether recommendations were followed and use the resulting sensor data to evaluate outcomes.
+- [ ] Explore integrations with notification or smart-home systems for proactive alerts and future automation.
+
+### Optional Future Expansion — Computer Vision
+- [ ] Explore camera-based plant-health monitoring.
+- [ ] Explore detection of visible plant stress, pests, disease, or physical damage.
+- [ ] Use visual observations as an additional input to the environmental intelligence layer.
