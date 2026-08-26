@@ -155,7 +155,6 @@ function useMediaQuery(query) {
 // of condensation collecting on greenhouse glass, filling clockwise with
 // soil moisture. Replaces a generic linear progress bar.
 // ---------------------------------------------------------------------------
-// After
 function DewRing({ pct, size = 96, gradientId }) {
   const clamped = Math.max(0, Math.min(100, pct ?? 0));
   const r = (size - 12) / 2;
@@ -297,7 +296,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
               timeRange === range.key ? "active" : ""
             }`}
             onClick={() => setTimeRange(range.key)}
-            aria-pressed={activeMetric === m.key}
+            aria-pressed={timeRange === range.key}
           >
             {range.label}
           </button>
@@ -1227,7 +1226,7 @@ export default function SensorDashboard() {
               key={id}
               className={`tab-btn ${activeStation === i ? "active" : ""}`}
               onClick={() => setActiveStation(i)}
-              aria-pressed={activeMetric === m.key}
+              aria-pressed={activeStation === i}
             >
               <span
                 className="tab-dot"
