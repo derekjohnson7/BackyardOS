@@ -442,6 +442,10 @@ export default function SensorDashboard() {
   }, []);
 
   useEffect(() => {
+    fetchWeather();
+  }, [fetchWeather]);
+
+  useEffect(() => {
     if (!autoRefresh || !backendUrl) return;
     const id = setInterval(() => fetchData(backendUrl), 30000);
     return () => clearInterval(id);
@@ -1047,48 +1051,50 @@ export default function SensorDashboard() {
             })}
           </div>
 
-            <div className="insight-card">
-              <div className="insight-eyebrow">WEATHER</div>
-              <h3 className="insight-title">Local Forecast</h3>
+<div className="insight-grid">
+  <div className="insight-card">
+    <div className="insight-eyebrow">WEATHER</div>
+    <h3 className="insight-title">Local Forecast</h3>
 
-              {weatherStatus === "loading" && (
-                <div className="coming-soon">Loading weather…</div>
-              )}
+    {weatherStatus === "loading" && (
+      <div className="coming-soon">Loading weather…</div>
+    )}
 
-              {weatherStatus === "error" && (
-                <div className="coming-soon">Weather unavailable</div>
-              )}
+    {weatherStatus === "error" && (
+      <div className="coming-soon">Weather unavailable</div>
+    )}
 
-              {weather && weatherStatus === "ok" && (
-                <div className="weather-content">
-                  <div className="weather-main">
-                    <span className="weather-temp">
-                      {weather.temperature_f.toFixed(0)}°F
-                    </span>
+    {weather && weatherStatus === "ok" && (
+      <div className="weather-content">
+        <div className="weather-main">
+          <span className="weather-temp">
+            {weather.temperature_f.toFixed(0)}°F
+          </span>
 
-                    <span className="weather-condition">
-                      {weather.condition}
-                    </span>
-                  </div>
+          <span className="weather-condition">
+            {weather.condition}
+          </span>
+        </div>
 
-                  <div className="weather-details">
-                    <span>Humidity {weather.humidity_pct}%</span>
-                    <span>Wind {weather.wind_speed_mph} mph</span>
-                    <span>Rain {weather.precipitation_in} in</span>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="weather-details">
+          <span>Humidity {weather.humidity_pct}%</span>
+          <span>Wind {weather.wind_speed_mph} mph</span>
+          <span>Rain {weather.precipitation_in} in</span>
+        </div>
+      </div>
+    )}
+  </div>
 
-            <div className="insight-card">
-              <div className="insight-eyebrow">VISION</div>
-              <h3 className="insight-title">Plant Health</h3>
-              <div className="coming-soon">
-                Camera monitoring planned
-              </div>
-            </div>
-          </div>
-        </>
+  <div className="insight-card">
+    <div className="insight-eyebrow">VISION</div>
+    <h3 className="insight-title">Plant Health</h3>
+    <div className="coming-soon">
+      Camera monitoring planned
+    </div>
+  </div>
+</div>
+
+              </>
       )}
 
       {deviceIds.length > 0 && (
@@ -1099,7 +1105,15 @@ export default function SensorDashboard() {
               className={`tab-btn ${activeStation === i ? "active" : ""}`}
               onClick={() => setActiveStation(i)}
             >
-              <span className="tab-dot" style={{ background: activeStation === i ? "var(--dew)" : "var(--ink-dim)" }} />
+              <span
+                className="tab-dot"
+                style={{
+                  background:
+                    activeStation === i
+                      ? "var(--dew)"
+                      : "var(--ink-dim)",
+                }}
+              />
               PROBE {String(i + 1).padStart(2, "0")}
             </button>
           ))}
