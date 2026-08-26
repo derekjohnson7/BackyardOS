@@ -79,6 +79,10 @@ def create_reading(
 
     return db_reading
 
+@app.get("/readings")
+def get_readings(session: Session = Depends(get_session)):
+    readings = session.exec(select(SensorReading)).all()
+    return readings
 
 @app.get("/weather")
 def get_weather():
