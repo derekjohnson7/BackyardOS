@@ -110,8 +110,22 @@ def get_weather():
         "timezone": "auto",
     }
 
-    response = requests.get(url, params=params, timeout=10)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code == 429:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service is temporarily rate limited"
+            )
+
+        response.raise_for_status()
+
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to retrieve weather data"
+        )
 
     data = response.json()
     current = data["current"]
