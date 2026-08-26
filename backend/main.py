@@ -7,7 +7,14 @@ from database import create_db_and_tables, get_session
 from models import SensorReading, SensorReadingCreate
 from fastapi.middleware.cors import CORSMiddleware
 
+from dotenv import load_dotenv
+import requests
+
+load_dotenv()
+
 API_KEY = os.getenv("API_KEY")
+WEATHER_LATITUDE = os.getenv("WEATHER_LATITUDE")
+WEATHER_LONGITUDE = os.getenv("WEATHER_LONGITUDE")
 
 
 app = FastAPI(
@@ -73,3 +80,46 @@ def get_readings(
 	readings = session.exec(statement).all()
 	
 	return readings
+
+@app.get("/weather")
+def get_weather():
+    latitude = os.getenv("WEATHER_LATITUDE")
+    longitude = os.getenv("WEATHER_LONGITUDE")
+
+    if not latitude or not longitude:
+        raise HTTPException(
+            status_code=500,
+            detail="Weather location is not configured"
+        )
+
+    url = "https://api.open-meteo.com/v1/forecast"
+
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": [
+            "temperature_2m",
+            "relative_humidity_2m",
+            "precipitation",
+            "weather_code",
+            "wind_speed_10m",
+        ],
+        "temperature_unit": "fahrenheit",
+        "wind_speed_unit": "mph",
+        "precipitation_unit": "inch",
+        "timezone": "auto",
+    }
+
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+
+    data = response.json()
+    current = data["current"]
+
+    return {
+        "temperature_f": current["temperature_2m"],
+        "humidity_pct": current["relative_humidity_2m"],
+        "precipitation_in": current["precipitation"],
+        "weather_code": current["weather_code"],
+        "wind_speed_mph": current["wind_speed_10m"],
+    }
