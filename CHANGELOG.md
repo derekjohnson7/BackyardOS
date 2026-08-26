@@ -132,14 +132,32 @@ a future milestone.
 ## v0.8.0 — Dashboard MVP (IN PROGRESS)
 
 ### Added
+- Built React/Vite dashboard for live and historical sensor telemetry.
+- Added soil moisture, temperature, humidity, and pressure readouts.
+- Added Recharts-based historical trend visualization.
+- Added 6-hour, 24-hour, and 7-day chart filtering.
+- Added automatic dashboard refresh every 30 seconds.
+- Added retry handling for Render cold starts.
+- Added persistent backend URL configuration using localStorage with production environment fallback.
+- Added node freshness states:
+  - LIVE
+  - STALE
+  - OFFLINE
+- Added soil-condition classifications:
+  - DRY
+  - HEALTHY
+  - WET
+  - SATURATED
+- Added Fahrenheit temperature display while retaining Celsius in stored telemetry.
+- Added metric-specific chart scaling.
+- Added responsive mobile layout and probe-switching UI for future multi-node deployments.
 - Added WeatherAPI integration through the FastAPI backend.
-- Added `GET /weather` endpoint for external weather context.
-- Expanded weather integration from current conditions to one-day forecast data.
-- Added current temperature, feels-like temperature, daily high/low, rain chance, UV index, humidity, wind speed/direction, wind gusts, dew point, and sunset to the dashboard.
+- Added `GET /weather` endpoint.
+- Expanded weather integration to one-day forecast data.
+- Added current temperature, feels-like temperature, daily high/low, rain chance, UV index, humidity, wind direction/speed, gusts, dew point, and sunset.
 - Added 15-minute backend weather caching.
-- Added 15-minute automatic weather refresh in the React dashboard.
-- Added last-successful weather refresh timestamp to help identify stale weather data.
-- Added mobile probe-switching UI that supports future multi-node deployments.
+- Added 15-minute automatic weather refresh.
+- Added last-successful weather refresh timestamp.
 
 ### Improved
 - Added external weather context alongside locally measured backyard conditions.

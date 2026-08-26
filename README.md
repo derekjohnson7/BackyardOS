@@ -42,7 +42,7 @@ Weather context:
 
 `WeatherAPI -> FastAPI -> 15-minute cache -> React Dashboard`
 
-The current milestone is focused on refining the dashboard with improved timestamp handling, plant-health indicators, and additional environmental context.
+The current milestone is focused on final dashboard refinement, field validation of soil-condition thresholds, stale-data handling, and preparation for outdoor deployment.
 
 ## Architecture
 
@@ -104,5 +104,9 @@ These values are preliminary and will be refined through additional field testin
 - [x] Convert dashboard temperature display from Celsius to Fahrenheit.
 - [x] Add metric-specific chart scaling.
 - [x] Verify responsive mobile layout.
+- [x] Add external weather and forecast context.
+- [x] Add 15-minute weather caching and refresh.
+- [x] Display last successful weather refresh time.
+- [x] Add mobile probe switching for future multi-node support.
 - [ ] Add empty-state handling for filtered charts.
 - [ ] Refine soil-condition thresholds using collected field data.
