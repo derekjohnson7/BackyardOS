@@ -155,7 +155,8 @@ function useMediaQuery(query) {
 // of condensation collecting on greenhouse glass, filling clockwise with
 // soil moisture. Replaces a generic linear progress bar.
 // ---------------------------------------------------------------------------
-function DewRing({ pct, size = 96 }) {
+// After
+function DewRing({ pct, size = 96, gradientId }) {
   const clamped = Math.max(0, Math.min(100, pct ?? 0));
   const r = (size - 12) / 2;
   const c = 2 * Math.PI * r;
@@ -166,7 +167,7 @@ function DewRing({ pct, size = 96 }) {
     <div className="dew-ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <defs>
-          <linearGradient id="dewGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--bloom)" />
             <stop offset="100%" stopColor="var(--dew)" />
           </linearGradient>
@@ -177,7 +178,7 @@ function DewRing({ pct, size = 96 }) {
           cy={cy}
           r={r}
           fill="none"
-          stroke="url(#dewGrad)"
+          stroke={`url(#${gradientId})`}
           strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -250,7 +251,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
 
       <div className="station-body">
        <div className="soil-summary">
-        <DewRing pct={latest ? latest.soil_moisture_pct : 0} />
+        <DewRing pct={latest ? latest.soil_moisture_pct : 0} gradientId={`dewGrad-${deviceId}`} />
 
         <span className={`soil-status ${soilStatus.className}`}>
           {soilStatus.label}
@@ -282,6 +283,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
             className={`metric-tab ${activeMetric === m.key ? "active" : ""}`}
             style={activeMetric === m.key ? { borderColor: m.color, color: m.color } : {}}
             onClick={() => onMetricChange(deviceId, m.key)}
+            aria-pressed={activeMetric === m.key}
           >
             {m.label}
           </button>
@@ -295,6 +297,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
               timeRange === range.key ? "active" : ""
             }`}
             onClick={() => setTimeRange(range.key)}
+            aria-pressed={activeMetric === m.key}
           >
             {range.label}
           </button>
@@ -1104,7 +1107,9 @@ export default function SensorDashboard() {
 
       {deviceIds.length === 0 ? (
         <div className="empty-state">
-          No readings yet. Tap the gear icon to connect your backend.
+          {status === "loading"
+            ? "Connecting to backend…"
+            : "No readings yet. Tap the gear icon to connect your backend."}
         </div>
       ) : (
         <>
@@ -1222,6 +1227,7 @@ export default function SensorDashboard() {
               key={id}
               className={`tab-btn ${activeStation === i ? "active" : ""}`}
               onClick={() => setActiveStation(i)}
+              aria-pressed={activeMetric === m.key}
             >
               <span
                 className="tab-dot"
