@@ -46,7 +46,13 @@ The current milestone is focused on final dashboard refinement, field validation
 
 ## Architecture
 
-Sensors -> ESP32 -> Wi-Fi/HTTPS -> FastAPI -> SQLModel -> PostgreSQL -> Dashboard
+Sensor telemetry:
+
+`Sensors -> ESP32 -> Wi-Fi -> HTTPS/TLS -> FastAPI -> PostgreSQL -> React Dashboard`
+
+Weather context:
+
+`WeatherAPI -> FastAPI -> 15-minute cache -> React Dashboard`
 
 ## Hardware
 
