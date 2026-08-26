@@ -9,6 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
 import requests
+from datetime import datetime, timedelta
+
+weather_cache = {
+    "data": None,
+    "timestamp": None,
+}
+
+WEATHER_CACHE_TTL = timedelta(minutes=15)
 
 load_dotenv()
 
@@ -72,15 +80,6 @@ def create_reading(
     return db_reading
 
 
-@app.get("/readings")
-def get_readings(
-	session: Session = Depends(get_session)
-):
-	statement = select(SensorReading)
-	readings = session.exec(statement).all()
-	
-	return readings
-
 @app.get("/weather")
 def get_weather():
     latitude = os.getenv("WEATHER_LATITUDE")
@@ -91,6 +90,15 @@ def get_weather():
             status_code=500,
             detail="Weather location is not configured"
         )
+
+    now = datetime.utcnow()
+
+    if (
+        weather_cache["data"] is not None
+        and weather_cache["timestamp"] is not None
+        and now - weather_cache["timestamp"] < WEATHER_CACHE_TTL
+    ):
+        return weather_cache["data"]
 
     url = "https://api.open-meteo.com/v1/forecast"
 
@@ -130,10 +138,15 @@ def get_weather():
     data = response.json()
     current = data["current"]
 
-    return {
+    weather_data = {
         "temperature_f": current["temperature_2m"],
         "humidity_pct": current["relative_humidity_2m"],
         "precipitation_in": current["precipitation"],
         "weather_code": current["weather_code"],
         "wind_speed_mph": current["wind_speed_10m"],
     }
+
+    weather_cache["data"] = weather_data
+    weather_cache["timestamp"] = now
+
+    return weather_data
