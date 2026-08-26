@@ -376,6 +376,7 @@ export default function SensorDashboard() {
   const [activeStation, setActiveStation] = useState(0);
   const [weather, setWeather] = useState(null);
   const [weatherStatus, setWeatherStatus] = useState("idle");
+  const [weatherLastFetched, setWeatherLastFetched] = useState(null);
 
   const isMobile = useMediaQuery("(max-width: 720px)");
 
@@ -435,6 +436,8 @@ export default function SensorDashboard() {
 
       setWeather(data);
       setWeatherStatus("ok");
+      setWeatherLastFetched(new Date());
+
     } catch (err) {
       console.error("Weather fetch failed:", err);
       setWeatherStatus("error");
@@ -1069,6 +1072,15 @@ export default function SensorDashboard() {
           .weather-highlight-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+
+          .weather-updated {
+            margin-top: 2px;
+            padding-top: 10px;
+            border-top: 1px solid var(--glass-line);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--ink-dim);
+          }
         }
       `}</style>
 
@@ -1182,6 +1194,11 @@ export default function SensorDashboard() {
       <span>Dew point {weather.dew_point_f.toFixed(0)}°F</span>
       <span>Sunset {weather.sunset}</span>
     </div>
+    {weatherLastFetched && (
+  <div className="weather-updated">
+    Updated {timeAgo(weatherLastFetched.toISOString())}
+  </div>
+)}
   </div>
 )}
   </div>
