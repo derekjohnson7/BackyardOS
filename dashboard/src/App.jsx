@@ -24,7 +24,7 @@ const METRICS = [
     key: "humidity_pct",
     label: "Humidity",
     unit: "%",
-    color: "var(--dew)",
+    color: "var(--sky)",
     digits: 1,
     domain: [0, 100],
   },
@@ -205,6 +205,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
   ? getNodeStatus(latest.timestamp)
   : { label: "NO DATA", className: "offline" };
   const metric = METRICS.find((m) => m.key === activeMetric) || METRICS[0];
+  const chartHeight = timeRange === "7d" ? 170 : 130;
 
   const chartData = useMemo(() => {
   const selectedRange =
@@ -303,7 +304,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
         ))}
       </div>
       <div className="chart-wrap">
-        <ResponsiveContainer width="100%" height={130}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 10 }}>
             <CartesianGrid stroke="var(--glass-line)" strokeDasharray="2 4" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={{ stroke: "var(--glass-line)" }} minTickGap={40} />
@@ -512,6 +513,7 @@ export default function SensorDashboard() {
           --bloom: #ef9fc0;
           --ember: #f4a35f;
           --dew: #6fe6da;
+          --sky: #7fb0e6;
           --mist: #b39be0;
           --font-display: 'Bricolage Grotesque', sans-serif;
           --font-body: 'Inter', sans-serif;
@@ -847,6 +849,13 @@ export default function SensorDashboard() {
           backdrop-filter: blur(14px);
         }
 
+        .insight-card--placeholder {
+          min-height: 90px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
         .insight-eyebrow {
           font-family: var(--font-mono);
           font-size: 9px;
@@ -865,6 +874,9 @@ export default function SensorDashboard() {
           font-family: var(--font-mono);
           font-size: 11px;
           color: var(--ink-dim);
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         @media (max-width: 720px) {
@@ -961,7 +973,7 @@ export default function SensorDashboard() {
         .time-range-tabs {
           display: flex;
           justify-content: flex-end;
-          gap: 6px;
+          gap: 5px;
           margin: 10px 0 6px;
         }
 
@@ -970,21 +982,24 @@ export default function SensorDashboard() {
           border: 1px solid var(--glass-line);
           color: var(--ink-dim);
           border-radius: 999px;
-          padding: 4px 8px;
+          padding: 3px 7px;
           font-family: var(--font-mono);
-          font-size: 9px;
+          font-size: 8px;
           cursor: pointer;
           transition: 0.2s ease;
+          opacity: 0.75;
         }
 
         .time-range-tab:hover {
           background: var(--glass-hover);
+          opacity: 1;
         }
 
         .time-range-tab.active {
-          color: var(--dew);
-          border-color: var(--dew);
-          background: rgba(111, 230, 218, 0.08);
+          color: var(--ink);
+          border-color: var(--ink-dim);
+          background: rgba(255,255,255,0.06);
+          opacity: 1;
         }
 
         .weather-content {
@@ -1207,10 +1222,14 @@ export default function SensorDashboard() {
 )}
   </div>
 
-  <div className="insight-card">
+  <div className="insight-card insight-card--placeholder">
     <div className="insight-eyebrow">VISION</div>
     <h3 className="insight-title">Plant Health</h3>
     <div className="coming-soon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+        <circle cx="12" cy="13" r="3.5" />
+      </svg>
       Camera monitoring planned
     </div>
   </div>
