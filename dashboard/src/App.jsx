@@ -374,6 +374,8 @@ export default function SensorDashboard() {
   const [activeMetrics, setActiveMetrics] = useState({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeStation, setActiveStation] = useState(0);
+  const [weather, setWeather] = useState(null);
+  const [weatherStatus, setWeatherStatus] = useState("idle");
 
   const isMobile = useMediaQuery("(max-width: 720px)");
 
@@ -416,6 +418,26 @@ export default function SensorDashboard() {
 
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
+    }
+  }, []);
+
+  const fetchWeather = useCallback(async () => {
+    try {
+      setWeatherStatus("loading");
+
+      const res = await fetch("https://backyardos.onrender.com/weather");
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      setWeather(data);
+      setWeatherStatus("ok");
+    } catch (err) {
+      console.error("Weather fetch failed:", err);
+      setWeatherStatus("error");
     }
   }, []);
 
@@ -949,6 +971,39 @@ export default function SensorDashboard() {
           border-color: var(--dew);
           background: rgba(111, 230, 218, 0.08);
         }
+
+        .weather-content {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .weather-main {
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+        }
+
+        .weather-temp {
+          font-family: var(--font-display);
+          font-size: 32px;
+          font-weight: 700;
+        }
+
+        .weather-condition {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--ink-dim);
+        }
+
+        .weather-details {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          font-family: var(--font-mono);
+          font-size: 10px;
+          color: var(--ink-dim);
+        }
       `}</style>
 
       <div className="dash-header">
@@ -992,13 +1047,37 @@ export default function SensorDashboard() {
             })}
           </div>
 
-          <div className="insight-grid">
             <div className="insight-card">
               <div className="insight-eyebrow">WEATHER</div>
               <h3 className="insight-title">Local Forecast</h3>
-              <div className="coming-soon">
-                Weather integration planned
-              </div>
+
+              {weatherStatus === "loading" && (
+                <div className="coming-soon">Loading weather…</div>
+              )}
+
+              {weatherStatus === "error" && (
+                <div className="coming-soon">Weather unavailable</div>
+              )}
+
+              {weather && weatherStatus === "ok" && (
+                <div className="weather-content">
+                  <div className="weather-main">
+                    <span className="weather-temp">
+                      {weather.temperature_f.toFixed(0)}°F
+                    </span>
+
+                    <span className="weather-condition">
+                      {weather.condition}
+                    </span>
+                  </div>
+
+                  <div className="weather-details">
+                    <span>Humidity {weather.humidity_pct}%</span>
+                    <span>Wind {weather.wind_speed_mph} mph</span>
+                    <span>Rain {weather.precipitation_in} in</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="insight-card">
