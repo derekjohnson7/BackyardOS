@@ -443,6 +443,12 @@ export default function SensorDashboard() {
 
   useEffect(() => {
     fetchWeather();
+
+    const id = setInterval(() => {
+      fetchWeather();
+    }, 15 * 60 * 1000);
+
+    return () => clearInterval(id);
   }, [fetchWeather]);
 
   useEffect(() => {
