@@ -358,12 +358,14 @@ function SettingsSheet({ open, onClose, urlDraft, setUrlDraft, onConnect, autoRe
 }
 
 export default function SensorDashboard() {
-  const [backendUrl, setBackendUrl] = useState(
-  localStorage.getItem("backyardos_backend_url") || ""
-  );
-  const [urlDraft, setUrlDraft] = useState(
-  localStorage.getItem("backyardos_backend_url") || ""
-  );
+  const defaultBackendUrl =
+  localStorage.getItem("backyardos_backend_url") ||
+  import.meta.env.VITE_API_URL ||
+  "";
+
+  const [backendUrl, setBackendUrl] = useState(defaultBackendUrl);
+  const [urlDraft, setUrlDraft] = useState(defaultBackendUrl);
+  
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
