@@ -1098,6 +1098,10 @@ export default function SensorDashboard() {
             font-size: 9px;
             color: var(--ink-dim);
           }
+
+          .weather-refresh-error {
+            color: var(--bloom);
+          }
         }
       `}</style>
 
@@ -1153,11 +1157,11 @@ export default function SensorDashboard() {
       <div className="coming-soon">Loading weather…</div>
     )}
 
-    {weatherStatus === "error" && (
+    {weatherStatus === "error" &&  !weather &&(
       <div className="coming-soon">Weather unavailable</div>
     )}
 
-{weather && weatherStatus === "ok" && (
+{weather (
   <div className="weather-content">
     <div className="weather-main">
       <div className="weather-primary">
@@ -1216,6 +1220,11 @@ export default function SensorDashboard() {
     {weatherLastFetched && (
   <div className="weather-updated">
     Updated {timeAgo(weatherLastFetched.toISOString())}
+    {weatherStatus === "error" && (
+      <span className="weather-refresh-error">
+        {" "}· refresh failed
+      </span>
+    )}
   </div>
 )}
   </div>
