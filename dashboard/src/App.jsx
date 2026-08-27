@@ -1232,7 +1232,7 @@ export default function SensorDashboard() {
   </div>
 
   <div className="insight-card insight-card--placeholder">
-    <div className="insight-eyebrow">ILLIGENCE</div>
+    <div className="insight-eyebrow">INTELLIGENCE</div>
     <h3 className="insight-title">Backyard Advisor</h3>
     <div className="coming-soon">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
