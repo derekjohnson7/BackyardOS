@@ -429,7 +429,7 @@ export default function SensorDashboard() {
     try {
       setWeatherStatus("loading");
 
-      const res = await fetch("https://backyardos.onrender.com/weather-test-fail");
+      const res = await fetch("https://backyardos.onrender.com/weather");
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
