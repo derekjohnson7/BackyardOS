@@ -303,22 +303,77 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
           </button>
         ))}
       </div>
-      <div className="chart-wrap">
+    <div className="chart-wrap">
+      {chartData.length === 0 ? (
+        <div className="empty-state">
+          No readings in this time range.
+        </div>
+      ) : (
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 10 }}>
-            <CartesianGrid stroke="var(--glass-line)" strokeDasharray="2 4" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={{ stroke: "var(--glass-line)" }} minTickGap={40} />
-            <YAxis tick={{ fill: "var(--ink-dim)", fontSize: 9, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} width={42} domain={metric.domain} />
-            <Tooltip
-              contentStyle={{ background: "var(--surface-solid)", border: "1px solid var(--glass-line)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)" }}
-              labelStyle={{ color: "var(--ink-dim)" }}
-              formatter={(v) => [`${v?.toFixed ? v.toFixed(metric.digits) : v} ${metric.unit}`, metric.label]}
+          <LineChart
+            data={chartData}
+            margin={{ top: 8, right: 12, bottom: 0, left: 10 }}
+          >
+            <CartesianGrid
+              stroke="var(--glass-line)"
+              strokeDasharray="2 4"
+              vertical={false}
             />
-            <Line type="monotone" dataKey="value" stroke={metric.color} strokeWidth={2.25} dot={false} isAnimationActive animationDuration={450} />
+
+            <XAxis
+              dataKey="label"
+              tick={{
+                fill: "var(--ink-dim)",
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+              }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--glass-line)" }}
+              minTickGap={40}
+            />
+
+            <YAxis
+              tick={{
+                fill: "var(--ink-dim)",
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+              }}
+              tickLine={false}
+              axisLine={false}
+              width={42}
+              domain={metric.domain}
+            />
+
+            <Tooltip
+              contentStyle={{
+                background: "var(--surface-solid)",
+                border: "1px solid var(--glass-line)",
+                borderRadius: 8,
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                color: "var(--ink)",
+              }}
+              labelStyle={{ color: "var(--ink-dim)" }}
+              formatter={(v) => [
+                `${v?.toFixed ? v.toFixed(metric.digits) : v} ${metric.unit}`,
+                metric.label,
+              ]}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={metric.color}
+              strokeWidth={2.25}
+              dot={false}
+              isAnimationActive
+              animationDuration={450}
+            />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+      )}
     </div>
+</div>
   );
 }
 
