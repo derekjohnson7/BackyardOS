@@ -6,7 +6,7 @@ The project began after repeatedly losing plants to suspected root rot caused by
 
 ## Current Status
 
-BackyardOS is currently at **v0.8.0 — Dashboard MVP**.
+BackyardOS is currently at BackyardOS is currently at **v0.9.0 — Database Migration & Resilience**..
 
 The system can:
 
@@ -19,7 +19,7 @@ The system can:
 - Send authenticated HTTPS telemetry using an API key.
 - Validate the backend TLS certificate chain.
 - Accept sensor readings through a hosted FastAPI backend.
-- Persist sensor readings in Render PostgreSQL using SQLModel.
+- Persist sensor readings in Supabase PostgreSQL using SQLModel.
 - Retrieve historical sensor readings through the API.
 - Display live and historical sensor data in a React/Vite dashboard.
 - Automatically reconnect to the saved backend URL on page load.
@@ -73,7 +73,7 @@ The backend uses:
 
 - FastAPI
 - SQLModel
-- PostgreSQL on Render for hosted persistence
+- PostgreSQL on Supabase for hosted persistence
 - SQLite as a local-development fallback
 - Uvicorn
 

@@ -174,7 +174,6 @@ a future milestone.
 - Soil-condition thresholds are currently provisional and will be refined using collected sensor data.
 - The ESP32 currently reports telemetry every 10 minutes.
 - Temperature remains stored and transmitted in Celsius; Fahrenheit conversion occurs only in the dashboard presentation layer.
-- Additional chart empty-state handling remains planned before v0.8.0 is considered complete.
 
 ## Next Milestone
 
