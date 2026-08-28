@@ -127,9 +127,7 @@ a future milestone.
 - The ESP32 trusts the GTS Root R4 certificate authority for HTTPS validation.
 - The root certificate may need to be updated in the future if the hosted backend changes certificate authorities.
 
-## Next Milestone
-
-## v0.8.0 — Dashboard MVP (IN PROGRESS)
+## v0.8.0 — Dashboard MVP (COMPLETE)
 
 ### Added
 - Built React/Vite dashboard for live and historical sensor telemetry.
@@ -177,3 +175,30 @@ a future milestone.
 - The ESP32 currently reports telemetry every 10 minutes.
 - Temperature remains stored and transmitted in Celsius; Fahrenheit conversion occurs only in the dashboard presentation layer.
 - Additional chart empty-state handling remains planned before v0.8.0 is considered complete.
+
+## Next Milestone
+
+## v0.9.0 — Database Migration & Resilience
+
+### Added
+- Migrated the BackyardOS production database from Render PostgreSQL to Supabase PostgreSQL.
+- Preserved all existing sensor telemetry history during migration.
+- Updated the Render FastAPI backend to use the Supabase database through the existing `DATABASE_URL` configuration.
+
+### Improved
+- Removed dependence on Render's expiring free PostgreSQL instance.
+- Kept the existing backend and dashboard architecture unchanged while swapping the database provider.
+- Maintained historical chart continuity across the migration.
+
+### Validated
+- Confirmed all 880 existing sensor readings were migrated successfully.
+- Verified the hosted dashboard loaded historical data correctly after the cutover.
+- Verified new ESP32 telemetry was written to Supabase and immediately surfaced through the production dashboard.
+- Confirmed the end-to-end production pipeline is now:
+
+  `ESP32 → Render FastAPI → Supabase PostgreSQL → React Dashboard`
+
+### Notes
+- Initial local migration attempt using Homebrew `pg_dump` was blocked by a PostgreSQL client/server version mismatch and macOS package compatibility.
+- Migration was completed successfully using a Supabase PostgreSQL migration notebook in Google Colab.
+- The previous Render PostgreSQL instance was retained temporarily as a rollback safeguard after the cutover.

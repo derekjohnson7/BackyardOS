@@ -96,6 +96,8 @@ These values are preliminary and will be refined through additional field testin
 
 ## Roadmap
 
+## Next Steps
+
 ### v0.8.0 — Dashboard MVP
 
 - [x] Build React/Vite dashboard foundation.
@@ -114,21 +116,16 @@ These values are preliminary and will be refined through additional field testin
 - [x] Add 15-minute weather caching and refresh.
 - [x] Display last successful weather refresh time.
 - [x] Add mobile probe switching for future multi-node support.
-
-
-## Next Steps
-
-### Finish v0.8.0 — Dashboard MVP
-- [ ] Add stale-weather handling so the last successful weather data remains visible if a refresh fails.
-- [ ] Add empty-state handling for filtered charts.
+- [x] Add stale-weather handling so the last successful weather data remains visible if a refresh fails.
+- [x] Add empty-state handling for filtered charts.
 - [ ] Refine soil-condition thresholds using collected field data.
 - [ ] Continue validating sensor trends over multi-day dry-down and rewatering cycles.
 
 ### v0.9.0 — Database Migration & Resilience
-- [ ] Migrate hosted PostgreSQL from Render to Supabase before the current Render database expires.
-- [ ] Verify historical readings after migration.
-- [ ] Update Render `DATABASE_URL` to point to Supabase.
-- [ ] Confirm ESP32 telemetry and dashboard history remain uninterrupted after migration.
+- [x] Migrate hosted PostgreSQL from Render to Supabase before the current Render database expires.
+- [x] Verify historical readings after migration.
+- [x] Update Render `DATABASE_URL` to point to Supabase.
+- [x] Confirm ESP32 telemetry and dashboard history remain uninterrupted after migration.
 - [ ] Consider local buffering on the ESP32 so readings are not lost during network outages.
 
 ### v0.10.0 — Outdoor Deployment
