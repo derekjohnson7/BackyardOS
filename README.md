@@ -30,7 +30,7 @@ The system can:
 - Cache external weather responses for 15 minutes to reduce unnecessary API calls.
 - Refresh dashboard weather data every 15 minutes.
 - Display the timestamp of the last successful weather refresh.
-- Support mobile switching between multiple future sensor probes.
+- Support mobile switching between multiple sensor probes.
 
 The complete telemetry pipeline is operational:
 
