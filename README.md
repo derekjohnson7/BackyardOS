@@ -6,7 +6,7 @@ The project began after repeatedly losing plants to suspected root rot caused by
 
 ## Current Status
 
-BackyardOS is currently at BackyardOS is currently at **v0.9.0 — Database Migration & Resilience**..
+BackyardOS is currently at **v0.10.0 — Outdoor Deployment**.
 
 The system can:
 

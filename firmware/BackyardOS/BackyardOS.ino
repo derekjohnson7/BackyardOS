@@ -115,7 +115,7 @@ void sendReading(
   );
 
   String jsonPayload = "{";
-  jsonPayload += "\"device_id\":\"backyard-node-01\",";
+  jsonPayload += "\"device_id\":\"backyard-node-02\",";
   jsonPayload += "\"timestamp\":\"" + String(timestamp) + "\",";
   jsonPayload += "\"soil_moisture_raw\":" + String(rawMoisture) + ",";
   jsonPayload += "\"soil_moisture_pct\":" + String(moisturePercent, 1) + ",";
@@ -191,6 +191,8 @@ void setup() {
 
   Serial.println("Starting BackyardOS...");
 
+  // --- I2C ---
+  Wire.begin(21, 22);
 
   // --- BME280 ---
   if (!bme.begin(0x76)) {

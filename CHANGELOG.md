@@ -175,9 +175,8 @@ a future milestone.
 - The ESP32 currently reports telemetry every 10 minutes.
 - Temperature remains stored and transmitted in Celsius; Fahrenheit conversion occurs only in the dashboard presentation layer.
 
-## Next Milestone
 
-## v0.9.0 — Database Migration & Resilience
+## v0.9.0 — Database Migration & Resilience (COMPLETE)
 
 ### Added
 - Migrated the BackyardOS production database from Render PostgreSQL to Supabase PostgreSQL.
@@ -201,3 +200,33 @@ a future milestone.
 - Initial local migration attempt using Homebrew `pg_dump` was blocked by a PostgreSQL client/server version mismatch and macOS package compatibility.
 - Migration was completed successfully using a Supabase PostgreSQL migration notebook in Google Colab.
 - The previous Render PostgreSQL instance was retained temporarily as a rollback safeguard after the cutover.
+
+## Next Milestone
+
+## v0.10.0 — Outdoor Deployment
+
+### Added
+- Assembled a second independent ESP32 sensor node for outdoor deployment testing.
+- Assigned the second sensor node the device ID `backyard-node-02`.
+- Integrated a second BME280 environmental sensor.
+- Integrated a second capacitive soil-moisture sensor.
+
+### Verified
+- Confirmed Probe 2 Wi-Fi connectivity on a new ESP32.
+- Confirmed BME280 I2C communication at address `0x76`.
+- Verified the BME280 chip ID as `0x60`.
+- Verified temperature, humidity, and atmospheric-pressure readings through the full BackyardOS firmware.
+- Verified soil-moisture sensing on GPIO35.
+- Verified authenticated telemetry from `backyard-node-02` reaches the hosted FastAPI backend.
+- Verified Probe 2 readings persist to Supabase PostgreSQL under a separate device ID.
+- Confirmed Probe 1 and Probe 2 can operate independently without mixing telemetry.
+
+### In Progress
+- Testing Probe 2 Wi-Fi reliability at increasing distance from the router.
+- Preparing the sensor node for a more durable outdoor assembly.
+- Evaluating weather-resistant enclosure and BME280 radiation-shield options.
+
+### Notes
+- Probe 1 remains active as a reference node while Probe 2 is prepared for outdoor deployment.
+- Probe 2 is currently being tested indoors before outdoor stress testing.
+- Production telemetry remains on a 10-minute interval.
