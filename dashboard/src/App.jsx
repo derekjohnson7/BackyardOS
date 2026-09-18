@@ -514,7 +514,7 @@ export default function SensorDashboard() {
 
   useEffect(() => {
     if (!autoRefresh || !backendUrl) return;
-    const id = setInterval(() => fetchData(backendUrl), 30000);
+    const id = setInterval(() => fetchData(backendUrl), 300000);
     return () => clearInterval(id);
   }, [autoRefresh, backendUrl, fetchData]);
 
