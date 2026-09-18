@@ -81,7 +81,14 @@ def create_reading(
 
 @app.get("/readings")
 def get_readings(session: Session = Depends(get_session)):
-    readings = session.exec(select(SensorReading)).all()
+    cutoff = datetime.utcnow() - timedelta(days=7)
+
+    readings = session.exec(
+        select(SensorReading)
+        .where(SensorReading.timestamp >= cutoff)
+        .order_by(SensorReading.timestamp.asc())
+    ).all()
+
     return readings
 
 @app.get("/readings/latest")
