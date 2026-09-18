@@ -84,6 +84,27 @@ def get_readings(session: Session = Depends(get_session)):
     readings = session.exec(select(SensorReading)).all()
     return readings
 
+@app.get("/readings/latest")
+def get_latest_readings(session: Session = Depends(get_session)):
+    device_ids = session.exec(
+        select(SensorReading.device_id).distinct()
+    ).all()
+
+    latest_readings = []
+
+    for device_id in device_ids:
+        reading = session.exec(
+            select(SensorReading)
+            .where(SensorReading.device_id == device_id)
+            .order_by(SensorReading.timestamp.desc())
+            .limit(1)
+        ).first()
+
+        if reading is not None:
+            latest_readings.append(reading)
+
+    return latest_readings
+
 @app.get("/weather")
 def get_weather():
     latitude = os.getenv("WEATHER_LATITUDE")
