@@ -307,7 +307,7 @@ Probe 1 remains active as the primary reference node. Probe 2 is used for additi
 
 ```text
 BackyardOS/
-├── arduino/                 # ESP32 firmware and hardware test sketches
+├── firmware/                 # ESP32 firmware and hardware test sketches
 ├── backend/                 # FastAPI backend and database models
 ├── dashboard/               # React/Vite dashboard
 ├── docs/
