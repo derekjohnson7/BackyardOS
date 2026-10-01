@@ -228,4 +228,7 @@ def analyze_trend(readings):
         "observations": observations,
         "max_gap_minutes": round(max_gap_minutes, 1),
         "data_continuous": data_continuous,
+        "minimum_moisture_pct": round(min(moisture_values), 2),
+        "maximum_moisture_pct": round(max(moisture_values), 2),
+        "moisture_range_pct": round(moisture_range, 2),
     }
