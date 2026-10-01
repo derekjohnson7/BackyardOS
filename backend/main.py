@@ -215,8 +215,17 @@ def get_advisor(session: Session = Depends(get_session)):
     return results
 
 @app.get("/advisor/trends")
-def get_advisor_trends(session: Session = Depends(get_session)):
-    cutoff = datetime.utcnow() - timedelta(hours=24)
+def get_advisor_trends(
+    hours: int = 24,
+    session: Session = Depends(get_session)
+):
+    if hours not in (24, 72):
+        raise HTTPException(
+            status_code=400,
+            detail="Supported trend windows are 24 and 72 hours."
+        )
+
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
 
     device_ids = session.exec(
         select(SensorReading.device_id).distinct()

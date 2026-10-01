@@ -26,15 +26,15 @@ def test_session():
 app.dependency_overrides[get_session] = test_session
 
 try:
-    # Generate 24 hours of continuous readings.
+    # Generate 72 hours of continuous readings.
     # The newest reading is approximately current.
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     with Session(engine) as session:
-        for i in range(145):
+        for i in range(433):
             reading = SensorReading(
                 device_id="backyard-test-01",
-                timestamp=now - timedelta(minutes=(144 - i) * 10),
+                timestamp=now - timedelta(minutes=(432 - i) * 10),
                 soil_moisture_raw=1950,
                 soil_moisture_pct=70.0,
                 temperature_c=25.0,
@@ -63,7 +63,45 @@ try:
     assert result["data_continuous"] is True
     assert result["trend"] == "stable"
     assert len(result["observations"]) == 1
+        # Verify the default endpoint uses the 24-hour recommendation
+    assert "24 hours" in result["observations"][0]["message"]
+    assert "72 hours" not in result["observations"][0]["message"]
     assert "recommendation" in result["observations"][0]
+
+    # Verify explicit 24-hour window
+    response_24 = client.get("/advisor/trends?hours=24")
+
+    assert response_24.status_code == 200
+    assert response_24.json()[0]["status"] == "ok"
+
+    print("24-hour endpoint: PASSED")
+
+    # Verify 72-hour window
+    response_72 = client.get("/advisor/trends?hours=72")
+
+    assert response_72.status_code == 200
+    assert response_72.json()[0]["status"] == "ok"
+    result_72 = response_72.json()[0]
+
+    assert result_72["duration_hours"] >= 71.5
+    assert result_72["reading_count"] >= 430
+    assert result_72["data_continuous"] is True
+    assert len(result_72["observations"]) == 1
+    # Verify the multi-day recommendation is selected
+    assert "72 hours" in result_72["observations"][0]["message"]
+    assert "multiple soil depths" in result_72["observations"][0]["recommendation"]
+
+    print("72-hour duration:", result_72["duration_hours"])
+    print("72-hour readings:", result_72["reading_count"])
+
+    print("72-hour endpoint: PASSED")
+
+    # Reject unsupported time windows
+    response_invalid = client.get("/advisor/trends?hours=500")
+
+    assert response_invalid.status_code == 400
+
+    print("Invalid window protection: PASSED")
 
     print("\nAdvisor Trend API test PASSED")
 

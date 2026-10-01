@@ -109,7 +109,7 @@ def analyze_trend(readings):
 
     first = readings[0]
     last = readings[-1]
-    
+
     # Ensure the latest reading is recent enough to trust
     latest_timestamp = last.timestamp
 
@@ -180,25 +180,42 @@ def analyze_trend(readings):
     data_continuous = max_gap_minutes <= 30
 
     if (
-        duration_hours >=  (24 - 20 / 60)
-        and data_continuous
+        data_continuous
         and average_moisture >= 65
         and moisture_range <= 5
     ):
-        observations.append({
-            "category": "soil",
-            "severity": "caution",
-            "message": (
-                "Soil moisture has remained elevated "
-                "with little variation for at least "
-                "24 hours."
-            ),
-            "recommendation": (
-                "Check moisture below the soil surface "
-                "and inspect drainage before watering "
-                "again."
-            )
-        })
+        if duration_hours >= (72 - 20 / 60):
+            observations.append({
+                "category": "soil",
+                "severity": "caution",
+                "message": (
+                    "Soil moisture has remained elevated "
+                    "with minimal variation for approximately "
+                    "72 hours."
+                ),
+                "recommendation": (
+                    "Investigate drainage and check moisture "
+                    "at multiple soil depths. Confirm whether "
+                    "the soil is retaining excess water before "
+                    "watering again."
+                )
+            })
+
+        elif duration_hours >= (24 - 20 / 60):
+            observations.append({
+                "category": "soil",
+                "severity": "caution",
+                "message": (
+                    "Soil moisture has remained elevated "
+                    "with little variation for approximately "
+                    "24 hours."
+                ),
+                "recommendation": (
+                    "Check moisture below the soil surface "
+                    "and inspect drainage before watering "
+                    "again."
+                )
+            })
 
     return {
         "status": "ok",
