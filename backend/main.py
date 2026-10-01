@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import requests
 from datetime import datetime, timedelta
 
+from advisor import analyze_reading
+
 weather_cache = {
     "data": None,
     "timestamp": None,
@@ -190,3 +192,24 @@ def get_weather():
     weather_cache["timestamp"] = now
 
     return weather_data
+
+@app.get("/advisor")
+def get_advisor(session: Session = Depends(get_session)):
+    device_ids = session.exec(
+        select(SensorReading.device_id).distinct()
+    ).all()
+
+    results = []
+
+    for device_id in device_ids:
+        reading = session.exec(
+            select(SensorReading)
+            .where(SensorReading.device_id == device_id)
+            .order_by(SensorReading.timestamp.desc())
+            .limit(1)
+        ).first()
+
+        if reading is not None:
+            results.append(analyze_reading(reading))
+
+    return results
