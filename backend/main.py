@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import requests
 from datetime import datetime, timedelta
 
-from advisor import analyze_reading
+from advisor import analyze_reading, analyze_trend
 
 weather_cache = {
     "data": None,
@@ -211,5 +211,28 @@ def get_advisor(session: Session = Depends(get_session)):
 
         if reading is not None:
             results.append(analyze_reading(reading))
+
+    return results
+
+@app.get("/advisor/trends")
+def get_advisor_trends(session: Session = Depends(get_session)):
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+
+    device_ids = session.exec(
+        select(SensorReading.device_id).distinct()
+    ).all()
+
+    results = []
+
+    for device_id in device_ids:
+        readings = session.exec(
+            select(SensorReading)
+            .where(SensorReading.device_id == device_id)
+            .where(SensorReading.timestamp >= cutoff)
+            .order_by(SensorReading.timestamp.asc())
+        ).all()
+
+        if readings:
+            results.append(analyze_trend(readings))
 
     return results

@@ -93,4 +93,122 @@ def analyze_reading(reading):
         "observations": observations,
         "observation_count": len(observations),
     }
+
+def analyze_trend(readings):
+    """
+    Analyze moisture trends from historical sensor readings.
+
+    Readings must be ordered from oldest to newest.
+    Returns a summary without modifying any data.
+    """
+    if len(readings) < 2:
+        return {
+            "status": "insufficient_data",
+            "message": "Not enough readings to determine a trend."
+        }
+
+    first = readings[0]
+    last = readings[-1]
     
+    # Ensure the latest reading is recent enough to trust
+    latest_timestamp = last.timestamp
+
+    if latest_timestamp.tzinfo is None:
+        latest_timestamp = latest_timestamp.replace(
+            tzinfo=timezone.utc
+        )
+
+    age_minutes = (
+        datetime.now(timezone.utc) - latest_timestamp
+    ).total_seconds() / 60
+
+    if age_minutes >= 30:
+        return {
+            "status": "stale_data",
+            "device_id": last.device_id,
+            "message": (
+                "Latest sensor reading is outdated. "
+                "Current moisture trends cannot be "
+                "assessed reliably."
+            ),
+            "observations": [],
+        }
+    moisture_start = first.soil_moisture_pct
+    moisture_end = last.soil_moisture_pct
+
+    moisture_change = round(
+        moisture_end - moisture_start, 2
+    )
+
+    average_moisture = round(
+        sum(r.soil_moisture_pct for r in readings)
+        / len(readings),
+        2
+    )
+
+    if moisture_change >= 5:
+        trend = "increasing"
+    elif moisture_change <= -5:
+        trend = "decreasing"
+    else:
+        trend = "stable"
+        
+    # Check for persistent elevated moisture
+    moisture_values = [
+        r.soil_moisture_pct for r in readings
+    ]
+
+    duration_hours = (
+        last.timestamp - first.timestamp
+    ).total_seconds() / 3600
+
+    moisture_range = (
+        max(moisture_values) - min(moisture_values)
+    )
+
+    observations = []
+
+    # Verify that readings adequately cover the period.
+    # BackyardOS normally reports every 10 minutes.
+    max_gap_minutes = max(
+        (
+            readings[i].timestamp - readings[i - 1].timestamp
+        ).total_seconds() / 60
+        for i in range(1, len(readings))
+    )
+
+    data_continuous = max_gap_minutes <= 30
+
+    if (
+        duration_hours >=  (24 - 20 / 60)
+        and data_continuous
+        and average_moisture >= 65
+        and moisture_range <= 5
+    ):
+        observations.append({
+            "category": "soil",
+            "severity": "caution",
+            "message": (
+                "Soil moisture has remained elevated "
+                "with little variation for at least "
+                "24 hours."
+            ),
+            "recommendation": (
+                "Check moisture below the soil surface "
+                "and inspect drainage before watering "
+                "again."
+            )
+        })
+
+    return {
+        "status": "ok",
+        "device_id": last.device_id,
+        "reading_count": len(readings),
+        "average_moisture_pct": average_moisture,
+        "moisture_change_pct": moisture_change,
+        "trend": trend,
+        "duration_hours": round(duration_hours, 1),
+        "observations": observations,
+        "max_gap_minutes": round(max_gap_minutes, 1),
+        "data_continuous": data_continuous,
+    }
