@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from advisor import analyze_trend
+from models import SensorReading
 
 
 def make_readings(device_id, moisture_values, hours_between=1):
@@ -95,5 +96,37 @@ assert stale_result["status"] == "stale_data"
 assert stale_result["observations"] == []
 
 print("Stale sensor protection:", stale_result)
+
+# Regression test: elevated moisture with gradual drying
+# Reproduces the behavior observed on backyard-node-02.
+elevated_readings = []
+
+for i in range(433):
+    timestamp = datetime.utcnow() - timedelta(
+        minutes=(432 - i) * 10
+    )
+
+    moisture = 77.8 - (7.6 * i / 432)
+
+    elevated_readings.append(
+        SensorReading(
+            device_id="backyard-test-elevated",
+            timestamp=timestamp,
+            soil_moisture_raw=1900,
+            soil_moisture_pct=moisture,
+        )
+    )
+
+elevated_result = analyze_trend(elevated_readings)
+
+assert elevated_result["status"] == "ok"
+assert elevated_result["data_continuous"] is True
+assert elevated_result["moisture_range_pct"] == 7.6
+assert any(
+    "72 hours" in observation["message"]
+    for observation in elevated_result["observations"]
+), "Expected a 72-hour elevated-moisture observation"
+
+print("Gradually drying elevated moisture: PASSED")
 
 print("\nAll trend analysis tests PASSED")

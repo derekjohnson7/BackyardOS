@@ -89,7 +89,7 @@ try:
     assert len(result_72["observations"]) == 1
     # Verify the multi-day recommendation is selected
     assert "72 hours" in result_72["observations"][0]["message"]
-    assert "multiple soil depths" in result_72["observations"][0]["recommendation"]
+    assert "multiple depths" in result_72["observations"][0]["recommendation"]
 
     print("72-hour duration:", result_72["duration_hours"])
     print("72-hour readings:", result_72["reading_count"])

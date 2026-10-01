@@ -181,24 +181,21 @@ def analyze_trend(readings):
 
     if (
         data_continuous
-        and average_moisture >= 65
-        and moisture_range <= 5
+        and min(moisture_values) >= 65
     ):
         if duration_hours >= (72 - 20 / 60):
             observations.append({
                 "category": "soil",
                 "severity": "caution",
                 "message": (
-                    "Soil moisture has remained elevated "
-                    "with minimal variation for approximately "
-                    "72 hours."
+                    "Soil moisture has remained above the elevated-moisture "
+                    "threshold for approximately 72 hours."
                 ),
                 "recommendation": (
-                    "Investigate drainage and check moisture "
-                    "at multiple soil depths. Confirm whether "
-                    "the soil is retaining excess water before "
-                    "watering again."
-                )
+                    "Check soil moisture at multiple depths and inspect drainage. "
+                    "Although moisture may be gradually decreasing, verify soil "
+                    "conditions before watering again."
+                ),
             })
 
         elif duration_hours >= (24 - 20 / 60):
