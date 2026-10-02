@@ -8,3 +8,7 @@ backend/backyardos.db
 backend/.venv
 firmware/WiFiTest/secrets.h
 backyardos_render.dump
+# Local AI experiments
+backyard_readings_test.json
+# Local Backyard Advisor experiments
+local_experiments/
