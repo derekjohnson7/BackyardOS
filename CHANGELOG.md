@@ -1,6 +1,42 @@
-# Changelog
+# ChangelogAll notable changes to BackyardOS are documented in this file.
 
-All notable changes to BackyardOS are documented in this file.
+## v0.11.0 — Backyard Advisor
+
+
+**Status:** In development
+
+### Added
+
+- Added rule-based current-reading analysis through `GET /advisor`.
+- Added deterministic 24-hour and 72-hour trend analysis through `GET /advisor/trends`.
+- Added evidence-based multi-day analysis through `GET /advisor/analysis`.
+- Added moisture trend, range, continuity, and net-change findings.
+- Added temperature relationship findings.
+- Added minimum-sample and sparse-data safeguards.
+- Added the React `AdvisorPanel` for deterministic seven-day findings.
+- Added project-specific AI context in `docs/advisor_context.md`.
+- Added a local Ollama/Mistral NeMo Backyard Advisor worker.
+- Added structured evidence IDs, response validation, atomic saving, and worker tests.
+
+### Improved
+
+- Separated deterministic calculations from language-model interpretation.
+- Required exactly one interpretation for every verified finding.
+- Rejected invented evidence IDs, altered evidence objects, invalid durations, and malformed responses.
+- Preserved the previous valid result when generation, networking, or validation fails.
+- Added safeguards against unsupported diagnoses, causal claims, and watering instructions.
+
+### Current Limitations
+
+- Ollama and Mistral NeMo run locally on the Mac mini.
+- The hosted Render backend does not invoke the local model.
+- The hosted dashboard displays deterministic findings, not the local AI interpretation.
+- The validated local result is stored in `local_experiments/advisor_latest.json`.
+- Soil calibration and field thresholds remain provisional.
+
+---
+
+
 
 ## v0.10.0 — Outdoor Deployment
 
