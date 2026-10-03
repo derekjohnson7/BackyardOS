@@ -1,6 +1,12 @@
 import re
 
 
+def evidence_for_finding(finding):
+    """Return the authoritative fields an interpretation must preserve."""
+    return {key: value for key, value in finding.items()
+            if key not in ("id", "observation")}
+
+
 def validate_advisor_response(response, verified_findings):
     """
     Validate Backyard Advisor's evidence-referenced response.
@@ -219,5 +225,40 @@ def validate_advisor_response(response, verified_findings):
                         "but the response claims moisture "
                         "declined in both/all nodes"
                     )
+
+    # 6. Require exact structured evidence, independently of model prose.
+    for item in response["interpretations"]:
+        if not isinstance(item, dict):
+            continue
+        ids = item.get("finding_ids")
+        if (not isinstance(ids, list) or len(ids) != 1
+                or not isinstance(ids[0], str) or ids[0] not in findings_by_id):
+            continue
+        finding_id = ids[0]
+        expected = evidence_for_finding(findings_by_id[finding_id])
+        evidence = item.get("evidence")
+        if not isinstance(evidence, dict):
+            errors.append(f"Missing structured evidence: {finding_id}")
+        else:
+            if set(evidence) != set(expected):
+                errors.append(f"Evidence fields mismatch: {finding_id}")
+            for key, value in expected.items():
+                actual = evidence.get(key)
+                # Python treats True == 1; explicitly reject booleans as numbers.
+                numeric = isinstance(value, (int, float)) and not isinstance(value, bool)
+                correct_type = (
+                    isinstance(actual, (int, float)) and not isinstance(actual, bool)
+                    if numeric else type(actual) is type(value)
+                )
+                if key not in evidence or not correct_type or actual != value:
+                    errors.append(f"Evidence mismatch: {finding_id}.{key}")
+        explanation = item.get("explanation")
+        if not isinstance(explanation, str) or not explanation.strip():
+            errors.append(f"Missing explanation: {finding_id}")
+        elif "daily_analysis_start" in expected and re.search(
+            r"\b(?:over\s+)?(?:the\s+)?(?:past|last)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+days?\b",
+            explanation, flags=re.IGNORECASE,
+        ):
+            errors.append(f"Use explicit historical dates instead of relative days: {finding_id}")
 
     return errors
