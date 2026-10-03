@@ -314,6 +314,44 @@ The dashboard:
 - Supports six-hour, 24-hour, and seven-day chart views.
 - Refreshes sensor data every five minutes.
 - Refreshes weather data every 15 minutes.
+
+
+## Backyard Advisor Architecture
+
+Backyard Advisor adds deterministic analysis and an optional local language-model interpretation layer without changing the sensor-ingestion path.
+
+### Hosted deterministic path
+
+`Supabase telemetry → FastAPI Advisor endpoints → React AdvisorPanel`
+
+The hosted FastAPI service exposes:
+
+- `GET /advisor` for rule-based analysis of the latest reading from each device.
+- `GET /advisor/trends` for deterministic 24-hour or 72-hour trend analysis.
+- `GET /advisor/analysis?days=7` for verified multi-day findings consumed by the dashboard.
+
+Deterministic application code calculates moisture direction, range, net change, data continuity, sample sufficiency, and supported temperature relationships. These verified findings—not model-generated measurements—are the numerical source of truth.
+
+### Local interpretation path
+
+`/advisor/analysis → advisor_worker.py → Ollama/Mistral NeMo → advisor_validation.py → local_experiments/advisor_latest.json`
+
+The local worker:
+
+- Retrieves verified findings from the hosted API.
+- Sends only structured findings and project context to the local model.
+- Requires schema version 2 with `interpretations`, `hypotheses_to_test`, `unknowns`, and qualitative `confidence`.
+- Requires exactly one interpretation per finding.
+- Rejects invented IDs, altered evidence objects, malformed fields, and inconsistent durations.
+- Atomically replaces the saved result only after validation succeeds.
+- Preserves the last valid result when generation, networking, or validation fails.
+
+### Current deployment boundary
+
+Ollama and Mistral NeMo run locally on the Mac mini. The hosted Render backend does not connect to the local Ollama service. The hosted React dashboard currently displays deterministic findings from `/advisor/analysis`; the validated local language-model response remains in `local_experiments/advisor_latest.json` and is not yet published to the dashboard.
+
+The Advisor is read-only and advisory. It does not write sensor telemetry or activate irrigation or other physical equipment.
+
 - Retries requests during Render cold starts.
 - Preserves the last successful weather response after later failures.
 - Displays empty states when no readings exist for a selected time range.
