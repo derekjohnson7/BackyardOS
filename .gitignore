@@ -12,3 +12,4 @@ backyardos_render.dump
 backyard_readings_test.json
 # Local Backyard Advisor experiments
 local_experiments/
+backend/advisor_demo.db

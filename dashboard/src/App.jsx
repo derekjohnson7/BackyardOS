@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import AdvisorPanel from "./AdvisorPanel";
 import {
   ResponsiveContainer,
   LineChart,
@@ -1286,18 +1287,11 @@ export default function SensorDashboard() {
 )}
   </div>
 
-  <div className="insight-card insight-card--placeholder">
+ <div className="insight-card">
     <div className="insight-eyebrow">INTELLIGENCE</div>
     <h3 className="insight-title">Backyard Advisor</h3>
-    <div className="coming-soon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
-          <path d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
-      </svg>
-      Coming soon:
-      Recommendations based on soil conditions,
-      weather, trends, and plant profiles
-    </div>
+
+    <AdvisorPanel backendUrl={backendUrl} />
   </div>
 </div>
 
