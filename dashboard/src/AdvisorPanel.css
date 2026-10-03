@@ -1,0 +1,24 @@
+.advisor-reading-count { margin: 0 0 6px; font-size: 12px; }
+.advisor-caption { margin: 8px 0 0; color: var(--ink-dim); font-size: 11px; line-height: 1.5; }
+.advisor-method-note { margin: 0 0 14px; }
+.advisor-nodes { display: grid; gap: 10px; }
+.advisor-node { border: 1px solid var(--glass-line); border-radius: 12px; background: rgba(255,255,255,0.02); overflow: hidden; }
+.advisor-node-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px; cursor: pointer; list-style: none; }
+.advisor-node-summary::-webkit-details-marker { display: none; }
+.advisor-node-summary:focus-visible { outline: 2px solid #64cbb8; outline-offset: -3px; border-radius: 12px; }
+.advisor-node-name { flex: 1 1 150px; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.advisor-trend { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid currentColor; border-radius: 6px; font-size: 10px; }
+.advisor-trend-declining { color: #e9b66a; background: rgba(233,182,106,0.07); }
+.advisor-trend-rising { color: #64cbb8; background: rgba(100,203,184,0.07); }
+.advisor-trend-neutral { color: var(--ink-dim); background: rgba(255,255,255,0.03); }
+.advisor-net-change { font-family: var(--font-mono); font-size: 13px; text-align: right; }
+.advisor-net-change small { display: block; margin-top: 3px; color: var(--ink-dim); font-size: 9px; }
+.advisor-toggle { flex-basis: 100%; color: var(--ink-dim); font-size: 10px; }
+.advisor-hide, .advisor-node[open] .advisor-show { display: none; }
+.advisor-node[open] .advisor-hide { display: inline; }
+.advisor-node-details { padding: 0 12px 12px; border-top: 1px solid var(--glass-line); }
+.advisor-section-label { margin: 12px 0 8px; color: var(--ink-dim); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; }
+.advisor-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.advisor-stat-grid .weather-stat { min-width: 0; }
+.advisor-stat-grid .weather-stat-value { overflow-wrap: anywhere; }
+@media (max-width: 420px) { .advisor-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
