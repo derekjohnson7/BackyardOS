@@ -13,6 +13,16 @@ from datetime import datetime, timedelta
 
 from advisor import analyze_reading, analyze_trend
 
+from advisor_data import (
+    prepare_sensor_readings,
+    prepare_moisture_inputs,
+)
+
+from advisor_analysis import (
+    build_moisture_findings,
+    build_temperature_findings,
+)
+
 weather_cache = {
     "data": None,
     "timestamp": None,
@@ -26,6 +36,9 @@ API_KEY = os.getenv("API_KEY")
 WEATHER_LATITUDE = os.getenv("WEATHER_LATITUDE")
 WEATHER_LONGITUDE = os.getenv("WEATHER_LONGITUDE")
 
+def advisor_current_time():
+    """Return the current UTC time for historical analysis."""
+    return datetime.utcnow()
 
 app = FastAPI(
      docs_url="/docs",
@@ -245,3 +258,54 @@ def get_advisor_trends(
             results.append(analyze_trend(readings))
 
     return results
+
+@app.get("/advisor/analysis")
+def get_advisor_analysis(
+    days: int = 7,
+    session: Session = Depends(get_session),
+):
+    """
+    Generate verified historical sensor findings.
+
+    Read-only. Does not invoke Ollama or modify sensor data.
+    """
+    if days < 2 or days > 30:
+        raise HTTPException(
+            status_code=400,
+            detail="Supported analysis windows are 2 to 30 days.",
+        )
+
+    cutoff = advisor_current_time() - timedelta(days=days)
+
+    readings = session.exec(
+        select(SensorReading)
+        .where(SensorReading.timestamp >= cutoff)
+        .order_by(
+            SensorReading.device_id,
+            SensorReading.timestamp,
+        )
+    ).all()
+
+    if not readings:
+        return {
+            "status": "insufficient_data",
+            "analysis_window_days": days,
+            "reading_count": 0,
+            "findings": [],
+            "message": "No readings found in the requested window.",
+        }
+
+    prepared = prepare_sensor_readings(readings)
+    summaries, histories = prepare_moisture_inputs(prepared)
+
+    findings = (
+        build_moisture_findings(summaries, histories)
+        + build_temperature_findings(prepared)
+    )
+
+    return {
+        "status": "ok",
+        "analysis_window_days": days,
+        "reading_count": len(prepared),
+        "findings": findings,
+    }
