@@ -10,6 +10,7 @@ from database import get_session
 from unittest.mock import patch
 from main import app
 from models import SensorReading
+from advisor_analysis import analyze_daily_trend
 
 
 def test_historical_analysis():
@@ -99,6 +100,30 @@ def test_historical_analysis():
         app.dependency_overrides.clear()
         engine.dispose()
 
+def test_sparse_data():
+    sparse_data = [
+        {
+            "date": "2026-10-01",
+            "average_moisture_pct": 45.0,
+            "reading_count": 12,
+        },
+        {
+            "date": "2026-10-02",
+            "average_moisture_pct": 40.0,
+            "reading_count": 18,
+        },
+    ]
+
+    result = analyze_daily_trend(sparse_data)
+
+    assert result["direction"] == "insufficient_data"
+    assert result["daily_range_points"] is None
+    assert result["increasing_intervals"] == 0
+    assert result["decreasing_intervals"] == 0
+    assert result["unchanged_intervals"] == 0
+
+    print("SPARSE DATA TEST: PASSED")
 
 if __name__ == "__main__":
     test_historical_analysis()
+    test_sparse_data()

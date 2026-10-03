@@ -106,14 +106,6 @@ def analyze_daily_trend(daily_averages):
 
     Does not apply an arbitrary stability threshold.
     """
-
-    daily_counts = [
-        day["reading_count"]
-        for day in daily_averages
-    ]
-
-    print("Daily reading counts:", daily_counts)
-
     values = [
         float(day["average_moisture_pct"])
         for day in daily_averages
