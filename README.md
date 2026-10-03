@@ -2,13 +2,13 @@
 
 BackyardOS is an IoT environmental-monitoring system built to better understand the microclimate and soil conditions around my backyard.
 
-The project began after repeatedly losing plants to suspected root rot caused by poor drainage in heavy clay soil. Rather than continuing to guess at soil conditions, BackyardOS collects real environmental data that can be used to understand drainage behavior, identify plant stress, and support better irrigation decisions.
-
-**Live Dashboard:** [backyardos-dash.onrender.com](https://backyardos-dash.onrender.com/)
+The project began after repeatedly losing plants to suspected root rot caused by poor drainage in heavy clay soil. Rather than continuing to guess at soil conditions, BackyardOS collects real environmental data that can be used to understand drainage behavior, identify plant stress, and support better irrigation decisions.**Live Dashboard:** [backyardos-dash.onrender.com](https://backyardos-dash.onrender.com/)
 
 ## Current Status
 
-BackyardOS is currently at **v0.10.0 — Outdoor Deployment**.
+
+BackyardOS is currently at **v0.10.0 — Outdoor Deployment**, with **v0.11.0 — Backyard Advisor** development underway.
+
 
 The complete environmental-monitoring pipeline is operational:
 
@@ -33,6 +33,38 @@ The system currently supports:
 - Separate desktop and mobile views for multiple probes.
 - Weather and forecast context through WeatherAPI.
 - Home Assistant integration using the latest reading from each probe.
+
+
+
+
+
+## Backyard Advisor
+
+Backyard Advisor adds an evidence-based interpretation layer to the sensor platform.
+
+The implemented pipeline separates deterministic measurements from AI-generated interpretation:
+
+`Supabase telemetry → FastAPI analysis → verified findings → local advisor worker → Ollama/Mistral NeMo → response validation → local result`
+
+Current capabilities include:
+
+- `GET /advisor` for rule-based assessment of the latest reading from each device.
+- `GET /advisor/trends` for deterministic 24-hour or 72-hour trend analysis.
+- `GET /advisor/analysis?days=7` for verified multi-day moisture and temperature findings.
+- Minimum-sample and sparse-data safeguards.
+- Moisture direction, range, continuity, and net-change analysis.
+- Temperature relationship analysis with explicit correlation limitations.
+- A React dashboard panel displaying deterministic seven-day findings.
+- A local Ollama worker using Mistral NeMo to interpret verified findings.
+- Evidence-ID and structured-evidence validation for model responses.
+- Atomic preservation of the last valid local result when generation, networking, or validation fails.
+- Tests covering malformed responses, invented evidence, mismatched durations, missing fields, sparse data, and network failures.
+
+The hosted dashboard currently displays deterministic findings from `/advisor/analysis`. The locally generated and validated model response is saved to `local_experiments/advisor_latest.json` and is not yet published to the hosted dashboard.
+
+The local model is advisory only. It does not write sensor data or activate irrigation or other physical equipment.
+
+
 
 ## System Architecture
 
