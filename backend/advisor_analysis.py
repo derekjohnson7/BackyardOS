@@ -191,14 +191,19 @@ def build_temperature_findings(readings):
             for record in valid
         ]
 
-        overall = safe_correlation(
-            moisture,
-            temperature,
+        overall = (
+            safe_correlation(moisture, temperature)
+            if len(valid) >= 30
+            else None
         )
 
-        change_correlation = safe_correlation(
-            consecutive_changes(moisture),
-            consecutive_changes(temperature),
+        change_correlation = (
+            safe_correlation(
+                consecutive_changes(moisture),
+                consecutive_changes(temperature),
+            )
+            if len(valid) >= 30
+            else None
         )
 
         findings.append({

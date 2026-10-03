@@ -10,7 +10,7 @@ from database import get_session
 from unittest.mock import patch
 from main import app
 from models import SensorReading
-from advisor_analysis import analyze_daily_trend
+from advisor_analysis import analyze_daily_trend, build_temperature_findings
 
 
 def test_historical_analysis():
@@ -124,6 +124,30 @@ def test_sparse_data():
 
     print("SPARSE DATA TEST: PASSED")
 
+def test_sparse_temperature():
+    readings = [
+        {
+            "device_id": "test-sensor",
+            "timestamp": f"2026-10-03T10:{i:02d}:00",
+            "soil_moisture_pct": 50.0 - i,
+            "temperature_c": 20.0 + i,
+        }
+        for i in range(5)
+    ]
+
+    findings = build_temperature_findings(readings)
+
+    assert len(findings) == 1
+
+    result = findings[0]
+
+    assert result["valid_readings"] == 5
+    assert result["overall_correlation"] is None
+    assert result["consecutive_change_correlation"] is None
+
+    print("SPARSE TEMPERATURE TEST: PASSED")
+
 if __name__ == "__main__":
     test_historical_analysis()
     test_sparse_data()
+    test_sparse_temperature()
