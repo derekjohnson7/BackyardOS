@@ -24,30 +24,37 @@ function NodeFindings({ device, findings }) {
   const temperature = findings.find((finding) => finding.id.endsWith("-TEMP"));
   const badge = trendStyles[trend?.daily_direction] ?? trendStyles.insufficient_data;
   const change = trend?.net_change_percentage_points;
-  const netChange = typeof change === "number"
-    ? `${change > 0 ? "+" : ""}${change} pts`
-    : "Not available";
+  const dailySummary = {
+    consistently_decreasing: `Daily moisture averages declined across all ${trend?.daily_days_analyzed} analyzed dates.`,
+    consistently_increasing: `Daily moisture averages rose across all ${trend?.daily_days_analyzed} analyzed dates.`,
+    mixed: "Daily moisture averages rose and fell during the analyzed dates.",
+    unchanged: "Daily moisture averages stayed unchanged during the analyzed dates.",
+    insufficient_data: "There aren't enough days with readings to describe a daily moisture trend.",
+  }[trend?.daily_direction] ?? "There isn't enough data to describe a daily moisture trend.";
+  const changeSummary = typeof change !== "number" ? null
+    : change === 0 ? "The latest reading matches the first reading in this window."
+    : `The latest reading is ${Math.abs(change)} percentage points ${change > 0 ? "above" : "below"} the first reading in this window.`;
 
   return (
-    <details className="advisor-node">
-      <summary className="advisor-node-summary">
+    <article className="advisor-node">
+      <div className="advisor-node-summary">
         <span className="advisor-node-name">{device}</span>
         <span className={`advisor-trend advisor-trend-${badge.tone}`}>
           <span aria-hidden="true">{badge.arrow}</span> {badge.label}
         </span>
-        <span className="advisor-net-change" title="First-to-last reading change across the full analysis window">
-          {netChange}<small>net · full window</small>
-        </span>
-        <span className="advisor-toggle"><span className="advisor-show">Show details</span><span className="advisor-hide">Hide details</span></span>
-      </summary>
+      </div>
+      <p className="advisor-plain-summary">{dailySummary}</p>
+      {changeSummary && <p className="advisor-plain-summary advisor-change-summary">{changeSummary}</p>}
+      <details className="advisor-technical">
+        <summary className="advisor-toggle">Technical details</summary>
       <div className="advisor-node-details">
         {trend && (
           <>
             <p className="advisor-section-label">DAILY MOISTURE</p>
             <div className="advisor-stat-grid">
-              <StatChip label="QUALIFYING DATES" value={trend.daily_days_analyzed} />
-              <StatChip label="DAILY AVG RANGE" value={trend.daily_range_percentage_points == null ? "Not available" : `${trend.daily_range_percentage_points} pts`} />
-              <StatChip label="UP / DOWN INTERVALS" value={`${trend.increasing_intervals ?? "—"} / ${trend.decreasing_intervals ?? "—"}`} />
+              <StatChip label="DAYS WITH ENOUGH READINGS" value={trend.daily_days_analyzed} />
+              <StatChip label="DAILY AVERAGE SPREAD" value={trend.daily_range_percentage_points == null ? "Not available" : `${trend.daily_range_percentage_points} percentage points`} />
+              <StatChip label="DAILY RISES / FALLS" value={`${trend.increasing_intervals ?? "—"} / ${trend.decreasing_intervals ?? "—"}`} />
             </div>
             <p className="advisor-caption">
               {trend.daily_analysis_start && trend.daily_analysis_end
@@ -59,9 +66,10 @@ function NodeFindings({ device, findings }) {
         {temperature && (
           <>
             <p className="advisor-section-label">TEMPERATURE RELATIONSHIP</p>
+            <p className="advisor-caption">Level correlation compares moisture and temperature readings. Change correlation compares how they change between successive readings. Values run from −1 to +1: negative means opposite directions, positive means the same direction, and near zero means little linear relationship. These associations do not establish a cause.</p>
             <div className="advisor-stat-grid">
-              <StatChip label="OVERALL r" value={temperature.overall_correlation ?? "Insufficient data"} title="Correlation between moisture and temperature measurement levels" />
-              <StatChip label="CHANGE r" value={temperature.consecutive_change_correlation ?? "Insufficient data"} title="Correlation between successive changes in moisture and temperature" />
+              <StatChip label="LEVEL CORRELATION (r)" value={temperature.overall_correlation ?? "Insufficient data"} title="Correlation between moisture and temperature measurement levels" />
+              <StatChip label="CHANGE CORRELATION (r)" value={temperature.consecutive_change_correlation ?? "Insufficient data"} title="Correlation between successive changes in moisture and temperature" />
               <StatChip label="VALID READINGS" value={temperature.valid_readings?.toLocaleString()} />
             </div>
           </>
@@ -70,7 +78,8 @@ function NodeFindings({ device, findings }) {
           <p className="advisor-caption" key={finding.id}>{finding.observation}</p>
         ))}
       </div>
-    </details>
+      </details>
+    </article>
   );
 }
 
@@ -143,11 +152,7 @@ export default function AdvisorPanel({ backendUrl }) {
       {status === "ok" && analysis && (
         <>
           <p className="advisor-reading-count">Readings analyzed: {analysis.reading_count?.toLocaleString()}</p>
-          {analysis.findings?.some((finding) => finding.id.endsWith("-TEMP")) && (
-            <p className="advisor-caption advisor-method-note">
-              Pearson correlations describe associations, not causation. Overall compares measurement levels; change compares successive changes.
-            </p>
-          )}
+          <p className="advisor-caption advisor-method-note">Moisture percentages are relative sensor estimates. A change from 70% to 52% is a drop of 18 percentage points.</p>
 
           {analysis.status === "insufficient_data" && (
             <p>{analysis.message || "Insufficient historical data."}</p>
