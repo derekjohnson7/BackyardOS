@@ -13,3 +13,6 @@ backyard_readings_test.json
 # Local Backyard Advisor experiments
 local_experiments/
 backend/advisor_demo.db
+# Generated offline sensor reports and local review bundles
+/reports/
+/review_package/

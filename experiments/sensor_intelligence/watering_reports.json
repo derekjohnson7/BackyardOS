@@ -1,0 +1,5 @@
+[
+  {"device_id":"backyard-node-02","reported_time_utc":"2026-08-28T20:51:03+00:00","precision":"user supplied timestamp","source":"User report in this chat"},
+  {"device_id":"backyard-node-02","reported_time_utc":"2026-09-15T00:52:27+00:00","precision":"user supplied timestamp","source":"User report in this chat"},
+  {"device_id":"backyard-node-02","reported_time_utc":"2026-10-10T21:00:00+00:00","precision":"approximate; around 4 pm Central","observation_anchor_id":"12942","source":"User report in this chat; anchor is a sensor observation, not exact watering time"}
+]

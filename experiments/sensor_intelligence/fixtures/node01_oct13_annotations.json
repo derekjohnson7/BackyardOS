@@ -1,0 +1,17 @@
+{
+  "source": "User screenshot transcribed to node01_oct13_screenshot.csv",
+  "excluded_from_watering_interpretation": [
+    {
+      "device_id": "backyard-node-01",
+      "id": "13812",
+      "reason": "User reports disturbance while moving things around",
+      "timestamp_utc": "2026-10-13T19:01:28+00:00"
+    }
+  ],
+  "reported_watering": {
+    "device_id": "backyard-node-01",
+    "time_utc": "2026-10-13T19:10:00+00:00",
+    "precision": "approximate, inferred from user saying four minutes ago"
+  },
+  "automatic_report": "Unmodified detector output on preserved transcription; exclusion is a manual interpretation annotation, not a clean replacement baseline"
+}
