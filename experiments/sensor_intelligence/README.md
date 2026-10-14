@@ -88,3 +88,20 @@ The historical 13,752-row CSV produced three unassisted candidates: node 01 on A
 Advanced JSON-only CLI remains available: `python3 -m experiments.sensor_intelligence export.csv --summary`. The `build_report` module now invokes the complete workflow as well; it no longer needs pre-generated reports or dated narrative. `compare_waterings` remains a historical development helper using its bundled user reports.
 
 Production inspection found that Advisor preparation drops raw ADC and its validator checks exact structured evidence. This experiment neither imports production services nor bypasses that contract. FastAPI, Advisor, firmware, dashboard and database integration remain outside scope. Nothing runs continuously or deploys as part of these commands.
+
+
+## Nightly read-only export and review
+
+A scheduled follow-up in the existing Codex chat runs at 12:10 a.m. America/Chicago. Keep this Mac powered on and the desktop app running. Its execution checkout is the chat workspace, not your Documents checkout. Generated exports/reports are local to that workspace under `reports/daily/` and are not uploaded to GitHub. The scheduled review reads those local files and returns meaningful findings or failures in the same chat, staying quiet when nothing actionable changes.
+
+The command is also runnable manually from any checkout:
+
+```sh
+python3 -m experiments.sensor_intelligence.daily
+```
+
+It downloads the existing public read-only `/readings` endpoint, which returns a rolling seven days, not the complete historical table. No database password or key is used; no production route is changed. Each run saves that snapshot and a CSV for the previous Central calendar day with one hour of prior context, then invokes the report workflow. Calendar boundaries follow daylight saving (23/25-hour days are tested). The report labels the context window; report counts include context and late-night rises may need the following day's readings. Repeated runs preserve earlier files. An export cannot recover data older than the endpoint's rolling window after a prolonged interruption.
+
+Network access must be permitted for this read-only endpoint in unattended runs. If the endpoint fails, the run reports failure rather than claiming success. The scheduled review checks node coverage and reports missing data. No automatic sensor exclusions or threshold changes are performed. The app schedule is stored by Codex, not installed by cloning this repository; you can pause it in the app's scheduled tasks. No separate macOS job is installed. Retention is manual: generated snapshots accumulate locally and are not a guaranteed backup of the full database.
+
+28 tests pass, including daily window boundaries, daylight saving, context selection, missing-schema failure and the prior workflow/detector checks. A live endpoint export and report generation were verified during setup.
