@@ -1,65 +1,90 @@
-# Experimental Sensor Intelligence
+# BackyardOS Sensor Intelligence — offline experiment
 
-Offline, standard-library-only diagnostics. Run from the repository root:
+## Everyday use
 
-```sh
-python3 -m experiments.sensor_intelligence /path/to/sensorreading_rows.csv --summary
-python3 -m unittest experiments.sensor_intelligence.test_sensor_intelligence -v
-```
-
-Omit `--summary` to include every original row (unchanged string values), channel flags, and chronological segment identifiers. Output is JSON on stdout; the CLI opens the CSV read-only and neither contacts services nor imports production modules. Reports include the source SHA-256. CSV data-row references are 1-based, excluding the header. Flags can overlap; counts are not additive. Excluded devices remain in the audit observations but never enter temporal analysis or event detection.
-
-Architecture inspection: production FastAPI/SQLModel telemetry feeds deterministic Advisor findings; `backend/advisor_validation.py` validates referenced IDs and exact evidence objects. Existing Advisor preparation retains moisture percentage and temperature but drops raw ADC. This independent experiment preserves raw ADC and does not extend or bypass that validator. Its findings are not an Advisor input contract.
-
-Policy is emitted in every report. Only independent nodes 01 and 02 are analyzed. No cross-device matching or blanket rejection of node 01 after an assumed hardware-change date. Source timestamps are UTC as confirmed by the user. Derived timestamps include UTC offsets and America/Chicago display times; source strings remain unchanged. Malformed timestamps are retained but excluded from chronology; nonfinite measurements are retained as source strings and flagged. Missing required columns reject the CLI input.
-
-Per-channel bounds: ADC integers 0–4095, moisture/humidity 0–100, BME280 temperature −40–85°C, pressure 300–1100 hPa. These are instrument plausibility bounds, not plant thresholds. ADC rails, clipping, calibration mismatch (>1 percentage point from documented 2800/1090 endpoints), and abrupt steps are separate flags. Abrupt-step thresholds per interval are 1000 ADC, 60 moisture points, 10°C, 30 humidity points and 20 hPa. They express suspicion, not proof of failure. Exact runs of at least six samples flag individual unchanged channels and simultaneous frozen BME tuples, retrospectively including the prefix. Stable natural readings may also trigger unchanged-run flags.
-
-Chronology is sorted per device without changing source rows. Gaps >900 seconds and duplicate timestamps break segments; intervals <300 seconds are suspect. Frozen runs never bridge segment boundaries. No outage interpolation or synthetic observations. Duplicate IDs and all timestamp collisions are flagged and barred from candidate evidence.
-
-Candidates require two stable baseline samples (within 3 points) and three follow-up samples all at least 10 points higher and 171 ADC lower than the baseline median. The entire five-row window must be contiguous and free of blocking quality flags. Clipping and unchanged percentages at clipped endpoints are allowed when valid raw ADC values show the sustained decrease. Moisture abrupt-step flags in the response are retained but allowed for low-confidence candidates because both watering and hardware changes can cause them. Raw freezes, rails, calibration mismatch, cadence anomalies and all BME suspicion still block candidates. Overlapping candidate windows are suppressed. This deliberately sacrifices recall, especially for gradual watering and startup sampling. BME flags remain channel-specific even though the event gate conservatively rejects a window containing any suspect channel.
-
-Every event remains low-confidence, with an onset interval, exact source-row references, measured deltas and persistence duration. User-reported watering times are stored separately from automatic detection. Rain, probe movement and calibration changes prevent causal confirmation from sensor values alone. Percentage and ADC derive from the same sensor and are consistency checks, not independent corroboration. No irrigation advice, estimated volumes, forecasts or confirmed watering labels are generated.
-
-Validation on the supplied 13,752-row export: nodes 01/02 have 7,282/6,464 rows; all six node 03 rows are excluded. Both median positive intervals are 602 seconds. The updated policy retains three low-confidence candidates: one on node 01 (August 22), and two on node 02 (September 15 and October 10 UTC). The evening node 01 candidate is now withheld because an abrupt dry-looking baseline change can make recovery look like watering. The morning candidate has preceding outage/step context in its evidence and remains uncertain. This policy change trades some false-positive risk for better handling of clipped watering responses.
-
-Three retrospective node 02 watering reports are stored in `watering_reports.json`, separate from detector inputs. The October time is approximate (21:00 UTC); record 12942 is only an observation anchor. Compare them using:
+From your BackyardOS repository folder, run:
 
 ```sh
-python3 -m experiments.sensor_intelligence.compare_waterings /path/to/sensorreading_rows.csv
+python3 -m experiments.sensor_intelligence.run "/path/to/sensorreading_rows.csv"
 ```
 
-The comparison includes original readings and flags within one hour of each report and candidate associations within a one-hour tolerance. This is explicitly a development check, not independent validation or a claim of detection accuracy. September and October have nearby candidates. August occurred during rapid startup sampling and remains undetected under the cadence safeguards. See `reports/watering_comparison.json` for the audit and `reports/sensor_intelligence_summary.json` for all candidates. Full per-row results are in `reports/sensor_intelligence_full.json`. No interpolation, production integration, database update or network access is involved.
+Replace the quoted path with your exported CSV path. The command prints the location of `report.html`; open that file in your browser. No assistant, database connection, API key or third-party Python package is needed. Requires Python 3.10+ and the system timezone database for America/Chicago. If `python3` is unavailable, install Python before running.
 
-Further safeguards: abrupt moisture steps are allowed only in the response, not in the two baseline readings. Substantial adjacent rises that fail checks include explicit reason codes and source-row references in `withheld_transitions`. These are diagnostic rejections, not a census of watering or absence of watering. The comparison report exposes these reasons separately from successful candidate associations.
+Each run creates its own dated folder under `reports/`, containing a readable report, full audit, summary and a manifest recording the source hash and implementation hashes. Existing reports are preserved. Reports and review packages are ignored by Git; they remain on your computer, without Git backup. Do not place raw exports inside tracked code folders. The source CSV is opened read-only; no readings are changed and no network requests are made.
 
-After generating JSON reports, rebuild the readable HTML with `python3 -m experiments.sensor_intelligence.build_report /path/to/sensorreading_rows.csv`. Twenty-one tests cover the original cases plus baseline recovery, frozen ADC, duplicate IDs, fast-sampling reasons, missing percentages and explicitly assisted exclusions.
+The HTML is an offline snapshot generated entirely from the export you supplied. It does not refresh automatically. After collecting more data, export another CSV and run the same command again. Include at least an hour before and after a watering event if you want to check the response. No additional watering is required for testing. Charts show Central time with daylight saving handled by America/Chicago; timestamps in the database/export are interpreted as UTC based on the user's confirmation. Source timestamp strings remain unchanged.
 
+## What the report means
 
-## Assisted review near an explicitly reported disturbance
+- **Unassisted possible watering:** a sustained wetter response meets the current safeguards. It is low confidence, not causal confirmation or a recommendation to water.
+- **Assisted result:** an explicit user disturbance exclusion recovered a qualifying response. The exclusion and original warnings remain visible. This is not independent automatic detection.
+- **Withheld:** a rise was seen but failed a safeguard; the report explains why. It does not mean no watering happened.
+- **100%:** the percentage reached the calibration's wet endpoint, not measured physical saturation.
 
-`python3 -m experiments.sensor_intelligence experiments/sensor_intelligence/fixtures/node01_oct13_screenshot.csv --annotations experiments/sensor_intelligence/fixtures/node01_oct13_annotations.json --summary`
+Charts plot actual measurements without interpolating outages. Green dots are retained readings; orange dots are user-excluded disturbances. Lines stop at gaps over 15 minutes and exclusions. Hover over dots for timestamps and IDs. Raw sensor values decreasing indicate a wetter response. Long histories may be easier to inspect by exporting a shorter period.
 
-The optional annotations path preserves the original analysis and source rows, and adds `assisted_candidates` separately. It requires an exact device/record ID/UTC timestamp match with a reason. Only explicitly excluded rows are removed from candidate evidence; original flags and the excluded source remain in the audit. Without annotations this path does not run. Reported watering times do not drive detection.
+## Optional watering notes
 
-A newly recoverable result must have exactly one excluded observation within 30 minutes before onset, three valid steady baseline samples spanning 15–30 minutes (raw range <=171 and percentage range <=3), and the normal three-sample sustained response. The retained sequence must still obey cadence/gap and hardware checks. Comparisons are recomputed after the explicit exclusion, so a pressure recovery or short interval caused by comparing against the disturbed row need not invalidate the retained evidence. Actual retained gaps >15 minutes remain blocking; nothing is interpolated. Original flags remain visible alongside the assisted candidate.
+The detector does not need watering labels. To compare your reported times separately, supply a JSON list using this format:
 
-Today’s screenshot yields one low-confidence `possible_watering_with_disturbance_warning`; its unassisted result remains withheld. Twenty-one tests pass, including seven assisted-path checks. The prior historical export retains the same three candidates, including September and October; the evening August dry-glitch recovery remains withheld. This change can recover wetting evidence near a known disturbance but may also admit a sustained response caused by probe handling. It is assisted interpretation, not independent automatic confirmation. The October 13 example was used to develop this revision and is no longer a held-out accuracy check.
+```json
+[
+  {"device_id":"backyard-node-01", "reported_time_utc":"2026-10-13T19:10:00+00:00", "precision":"approximate"}
+]
+```
 
+Save it outside tracked code, for example `reports/my_waterings.json`, then run:
 
-## Review and reproduce this version
+```sh
+python3 -m experiments.sensor_intelligence.run "/path/to/export.csv" --labels reports/my_waterings.json
+```
 
-Requires Python 3.10+ and the system timezone database (`America/Chicago`). No third-party Python packages, database credentials or service connections are required. Run commands from the repository root.
+Label timestamps must include an offset. The example is 2:10 p.m. Central on October 13, 2026. Candidate association uses a one-hour tolerance and does not establish causality. Reports do not feed into detection or change thresholds.
 
-1. Run `python3 -m unittest experiments.sensor_intelligence.test_sensor_intelligence -v`.
-2. Analyze a CSV with `python3 -m experiments.sensor_intelligence /path/to/export.csv --summary` (omit `--summary` for the full audit).
-3. Compare the three historical user reports with `python3 -m experiments.sensor_intelligence.compare_waterings /path/to/export.csv`.
-4. Analyze the screenshot fixture with the explicit annotations command above. The fixture is a manual transcription, not a database export.
+## Optional explicit disturbance exclusions
 
-Commands print JSON to stdout; redirect output if saving a new report. To rebuild the HTML snapshot, first save outputs from steps 2 and 3 to `reports/sensor_intelligence_summary.json` and `reports/watering_comparison.json`, and the annotated fixture analysis to `reports/node01_oct13_assisted.json`. Then run `python3 -m experiments.sensor_intelligence.build_report /path/to/export.csv`.
+Only exclude a reading when you independently know it was disturbed. Do not exclude inconvenient readings just to obtain a candidate. The optional JSON annotation format is:
 
-The HTML builder is a report for the October 2026 development examples, not a general live dashboard. Its dated narrative must be reviewed when analyzing a different export. The detector and comparison commands work on new CSV exports; the original labels remain development references, not independent validation labels.
+```json
+{
+  "excluded_from_watering_interpretation": [
+    {"device_id":"backyard-node-01", "id":"13812", "timestamp_utc":"2026-10-13T19:01:28+00:00", "reason":"User reports moving things around"}
+  ]
+}
+```
 
-Generated reports under `reports/` and review packages under `review_package/` are ignored by Git and remain on this computer. They are not backed up by a commit. The two small screenshot-derived test fixtures are versioned under `experiments/sensor_intelligence/fixtures/`; they contain sensor readings and the explicit user exclusion needed to reproduce the tests. No production files were modified. Local commits preserve code history but are not uploaded unless explicitly pushed.
+Run the supplied example without private data or database access:
 
-For the next normal watering, preserve this version’s policy and source hashes in the review manifest. Record the node and approximate UTC or Central time before evaluating. Run the unassisted detector first; only use an exclusion when the user independently identifies a disturbance. Report unassisted and assisted outcomes separately. Do not tune thresholds against that same event and call it independent validation.
+```sh
+python3 -m experiments.sensor_intelligence.run experiments/sensor_intelligence/fixtures/node01_oct13_screenshot.csv --annotations experiments/sensor_intelligence/fixtures/node01_oct13_annotations.json
+```
+
+For your own export, use its CSV and annotation path. Exclusions require an exact device, ID and UTC timestamp match and a reason. An exclusion absent from the export fails with an explanatory error. Original source observations and unassisted results remain in the audit; exclusions cannot turn an assisted result into unassisted confirmation.
+
+## Current safeguards and limitations
+
+Only independent nodes 01 and 02 enter temporal analysis. Node 03 is temporary test data; it and unknown devices are retained but excluded. No cross-device matching or blanket date-based rejection of node 01 is applied.
+
+Channel bounds: integer ADC 0–4095; moisture and humidity 0–100%; temperature −40–85°C; pressure 300–1100 hPa. These are instrument plausibility bounds, not plant thresholds. Flags distinguish invalid or missing/nonfinite values, ADC rails, percentage clipping, calibration mismatch, abrupt changes, frozen runs, duplicate IDs/timestamps and sampling discontinuities. Exact six-sample runs flag individual channels and simultaneous BME tuples retrospectively, including the prefix; naturally steady values may also be flagged.
+
+Calibration is the documented dry 2800 / wet 1090 mapping, clipped to 0–100%; disagreement beyond 1 percentage point is flagged. Abrupt-step thresholds are 1000 ADC units, 60 moisture points, 10°C, 30 humidity points and 20 hPa per regular interval. Gaps >900 seconds and duplicate timestamps split segments. Intervals <300 seconds are suspect. No outages are interpolated.
+
+Unassisted candidates require two baseline readings within 3 percentage points followed by three readings each at least 10 points higher and 171 raw units lower than the baseline median. All evidence must be contiguous and free of blocking flags. Clipped percentages and their unchanged runs are allowed when raw values support the change. Large moisture response steps may be allowed, but abrupt baseline steps, raw freezes, rails, calibration mismatch, environmental warnings and timing faults block results. Overlapping candidates are suppressed. Raw/percentage agreement is consistency within one sensor, not independent corroboration.
+
+Assisted review recomputes comparisons after explicit exclusions, retaining the original audit. A recovered result requires exactly one exclusion within 30 minutes before onset, three valid baseline observations spanning 15–30 minutes, raw range <=171 and percentage range <=3, plus the normal sustained response. Remaining readings still obey cadence and hardware checks. Retained gaps >15 minutes remain blocking. Recovery comparisons can pass after removal of a known disturbed row, but probe handling can mimic lasting wetting. All outcomes remain low confidence.
+
+User watering examples were used during development, not independent accuracy validation. Unknown watering, rain, calibration changes and probe movement limit causal conclusions. No forecasts, watering volumes, confirmed labels or irrigation advice are generated. Freeze the current version before checking a future event; changing rules to fit it turns it into another development example.
+
+## Development and checks
+
+```sh
+python3 -m unittest discover -s experiments/sensor_intelligence -t . -p 'test_*.py' -v
+```
+
+25 tests cover detector safeguards, assisted exclusions, read-only inputs, unique output folders, malformed and empty exports, safe HTML rendering and the complete workflow. Test fixtures are screenshot-transcribed sensor readings under `fixtures/`, not a new database export.
+
+The historical 13,752-row CSV produced three unassisted candidates: node 01 on August 22 and node 02 near September 15 and October 10 user reports. The evening August 22 dry-glitch recovery remains withheld; August 28 rapid startup sampling remains withheld. October 13 screenshot data produces one assisted result after explicit exclusion of record 13812, with no unassisted candidate. These are regression outcomes, not accuracy claims.
+
+Advanced JSON-only CLI remains available: `python3 -m experiments.sensor_intelligence export.csv --summary`. The `build_report` module now invokes the complete workflow as well; it no longer needs pre-generated reports or dated narrative. `compare_waterings` remains a historical development helper using its bundled user reports.
+
+Production inspection found that Advisor preparation drops raw ADC and its validator checks exact structured evidence. This experiment neither imports production services nor bypasses that contract. FastAPI, Advisor, firmware, dashboard and database integration remain outside scope. Nothing runs continuously or deploys as part of these commands.
