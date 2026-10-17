@@ -6,6 +6,7 @@ from sqlmodel import SQLModel, Field
 
 class SensorReadingCreate(SQLModel):
     device_id: str
+    probe_id: int = Field(default=1, ge=1, le=6)
     timestamp: datetime
     soil_moisture_raw: int
     soil_moisture_pct: float

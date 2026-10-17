@@ -109,15 +109,16 @@ def get_readings(session: Session = Depends(get_session)):
 @app.get("/readings/latest")
 def get_latest_readings(session: Session = Depends(get_session)):
     device_ids = session.exec(
-        select(SensorReading.device_id).distinct()
+        select(SensorReading.device_id, SensorReading.probe_id).distinct()
     ).all()
 
     latest_readings = []
 
-    for device_id in device_ids:
+    for device_id, probe_id in device_ids:
         reading = session.exec(
             select(SensorReading)
             .where(SensorReading.device_id == device_id)
+            .where(SensorReading.probe_id == probe_id)
             .order_by(SensorReading.timestamp.desc())
             .limit(1)
         ).first()
@@ -209,21 +210,24 @@ def get_weather():
 @app.get("/advisor")
 def get_advisor(session: Session = Depends(get_session)):
     device_ids = session.exec(
-        select(SensorReading.device_id).distinct()
+        select(SensorReading.device_id, SensorReading.probe_id).distinct()
     ).all()
 
     results = []
 
-    for device_id in device_ids:
+    for device_id, probe_id in device_ids:
         reading = session.exec(
             select(SensorReading)
             .where(SensorReading.device_id == device_id)
+            .where(SensorReading.probe_id == probe_id)
             .order_by(SensorReading.timestamp.desc())
             .limit(1)
         ).first()
 
         if reading is not None:
-            results.append(analyze_reading(reading))
+            result = analyze_reading(reading)
+            result["probe_id"] = probe_id
+            results.append(result)
 
     return results
 
@@ -241,21 +245,24 @@ def get_advisor_trends(
     cutoff = datetime.utcnow() - timedelta(hours=hours)
 
     device_ids = session.exec(
-        select(SensorReading.device_id).distinct()
+        select(SensorReading.device_id, SensorReading.probe_id).distinct()
     ).all()
 
     results = []
 
-    for device_id in device_ids:
+    for device_id, probe_id in device_ids:
         readings = session.exec(
             select(SensorReading)
             .where(SensorReading.device_id == device_id)
+            .where(SensorReading.probe_id == probe_id)
             .where(SensorReading.timestamp >= cutoff)
             .order_by(SensorReading.timestamp.asc())
         ).all()
 
         if readings:
-            results.append(analyze_trend(readings))
+            result = analyze_trend(readings)
+            result["probe_id"] = probe_id
+            results.append(result)
 
     return results
 

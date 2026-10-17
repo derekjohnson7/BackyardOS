@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import AdvisorPanel from "./AdvisorPanel";
+import { groupReadings } from "./probeIdentity.js";
 import {
   ResponsiveContainer,
   LineChart,
@@ -125,18 +126,6 @@ function getNodeStatus(ts) {
   return { label: "OFFLINE", className: "offline" };
 }
 
-function groupByDevice(rows) {
-  const map = new Map();
-  for (const row of rows) {
-    if (!map.has(row.device_id)) map.set(row.device_id, []);
-    map.get(row.device_id).push(row);
-  }
-  for (const arr of map.values()) arr.sort(
-  (a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp)
-    );
-  return map;
-}
-
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(
     typeof window !== "undefined" ? window.matchMedia(query).matches : false
@@ -196,7 +185,7 @@ function DewRing({ pct, size = 96, gradientId }) {
   );
 }
 
-function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }) {
+function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
   const latest = readings[readings.length - 1];
   const [timeRange, setTimeRange] = useState("24h");
   const soilStatus = latest
@@ -236,8 +225,8 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
     <div className="station-card">
       <div className="station-head">
         <div>
-          <div className="station-eyebrow">PROBE {String(index + 1).padStart(2, "0")}</div>
-          <h3 className="station-id">{deviceId}</h3>
+          <div className="station-eyebrow">PROBE {String(latest?.probe_id ?? 1).padStart(2, "0")}</div>
+          <h3 className="station-id">{latest?.device_id}</h3>
         </div>
         <div className="station-status-wrap">
           <span className={`node-status ${nodeStatus.className}`}>
@@ -252,7 +241,7 @@ function StationCard({ deviceId, index, readings, activeMetric, onMetricChange }
 
       <div className="station-body">
        <div className="soil-summary">
-        <DewRing pct={latest ? latest.soil_moisture_pct : 0} gradientId={`dewGrad-${deviceId}`} />
+        <DewRing pct={latest ? latest.soil_moisture_pct : 0} gradientId={`dewGrad-${latest?.device_id}-${latest?.probe_id ?? 1}`} />
 
         <span className={`soil-status ${soilStatus.className}`}>
           {soilStatus.label}
@@ -519,7 +508,7 @@ export default function SensorDashboard() {
     return () => clearInterval(id);
   }, [autoRefresh, backendUrl, fetchData]);
 
-  const grouped = useMemo(() => groupByDevice(rows), [rows]);
+  const grouped = useMemo(() => groupReadings(rows, parseTimestamp), [rows]);
   const deviceIds = useMemo(() => Array.from(grouped.keys()).sort(), [grouped]);
 
   useEffect(() => {
@@ -789,6 +778,7 @@ export default function SensorDashboard() {
           left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom));
           display: none;
           gap: 6px;
+          overflow-x: auto;
           background: var(--surface-solid);
           border: 1px solid var(--glass-line);
           border-radius: 18px;
@@ -797,7 +787,7 @@ export default function SensorDashboard() {
           box-shadow: 0 10px 30px rgba(0,0,0,0.35);
         }
         .tab-btn {
-          flex: 1;
+          flex: 1 0 68px;
           min-height: 48px;
           border-radius: 13px;
           border: none;
@@ -1167,7 +1157,7 @@ export default function SensorDashboard() {
           <h1 className="dash-title">Environmental Monitoring System</h1>
           <div className="dash-sub">
             {deviceIds.length
-              ? `${deviceIds.length} node${deviceIds.length === 1 ? "" : "s"} reporting`
+              ? `${new Set(rows.map((row) => row.device_id)).size} nodes · ${deviceIds.length} probe histories`
               : "not connected"}
           </div>
         </div>
@@ -1189,13 +1179,11 @@ export default function SensorDashboard() {
         <>
           <div className="station-grid">
             {visibleIds.map((id) => {
-              const i = deviceIds.indexOf(id);
 
               return (
                 <StationCard
                   key={id}
                   deviceId={id}
-                  index={i}
                   readings={grouped.get(id)}
                   activeMetric={activeMetrics[id] || "soil_moisture_pct"}
                   onMetricChange={handleMetricChange}
@@ -1316,7 +1304,7 @@ export default function SensorDashboard() {
                       : "var(--ink-dim)",
                 }}
               />
-              PROBE {String(i + 1).padStart(2, "0")}
+              {grouped.get(id)?.[0]?.device_id.replace(/^backyard-node-/, "N")} · P{grouped.get(id)?.[0]?.probe_id ?? 1}
             </button>
           ))}
         </div>

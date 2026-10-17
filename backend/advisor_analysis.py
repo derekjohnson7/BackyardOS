@@ -15,21 +15,22 @@ def build_moisture_findings(summaries, histories):
     """
 
     history_by_device = {
-        history["device_id"]: history
+        (history["device_id"], history.get("probe_id", 1)): history
         for history in histories
     }
 
     findings = []
 
     for index, summary in enumerate(
-        sorted(summaries, key=lambda item: item["device_id"]),
+        sorted(summaries, key=lambda item: (item["device_id"], item.get("probe_id", 1))),
         start=1,
     ):
         device_id = summary["device_id"]
+        probe_id = summary.get("probe_id", 1)
         change = summary["net_change_percentage_points"]
 
         daily_averages = history_by_device[
-            device_id
+            (device_id, probe_id)
         ]["daily_averages"]
 
         daily = analyze_daily_trend(daily_averages)
@@ -83,6 +84,7 @@ def build_moisture_findings(summaries, histories):
             "daily_days_analyzed": len(analysis_dates),
             "daily_coverage_min_readings": MIN_DAILY_READINGS,
             "device": device_id,
+            "probe_id": probe_id,
             "observation": observation,
             "net_change_percentage_points": change,
             "daily_direction": direction,
@@ -161,11 +163,11 @@ def build_temperature_findings(readings):
         device_id = reading.get("device_id")
 
         if device_id is not None:
-            devices[device_id].append(reading)
+            devices[(device_id, reading.get("probe_id", 1))].append(reading)
 
     findings = []
 
-    for index, (device_id, records) in enumerate(
+    for index, ((device_id, probe_id), records) in enumerate(
         sorted(devices.items()),
         start=1,
     ):
@@ -209,6 +211,7 @@ def build_temperature_findings(readings):
         findings.append({
             "id": f"N{index:02d}-TEMP",
             "device": device_id,
+            "probe_id": probe_id,
             "valid_readings": len(valid),
             "overall_correlation": (
                 round(overall, 3)
