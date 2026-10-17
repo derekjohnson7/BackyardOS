@@ -14,6 +14,7 @@ def prepare_sensor_readings(readings):
         else:
             record = {
                 "device_id": reading.device_id,
+                "probe_id": getattr(reading, "probe_id", 1),
                 "timestamp": reading.timestamp,
                 "soil_moisture_pct": reading.soil_moisture_pct,
                 "temperature_c": reading.temperature_c,
@@ -26,6 +27,7 @@ def prepare_sensor_readings(readings):
 
         prepared.append({
             "device_id": record["device_id"],
+            "probe_id": record.get("probe_id", 1),
             "timestamp": timestamp,
             "soil_moisture_pct": record["soil_moisture_pct"],
             "temperature_c": record["temperature_c"],
@@ -35,6 +37,7 @@ def prepare_sensor_readings(readings):
         prepared,
         key=lambda record: (
             record["device_id"],
+            record.get("probe_id", 1),
             record["timestamp"],
         ),
     )
@@ -53,12 +56,12 @@ def prepare_moisture_inputs(readings):
             reading.get("device_id")
             and reading.get("soil_moisture_pct") is not None
         ):
-            devices[reading["device_id"]].append(reading)
+            devices[(reading["device_id"], reading.get("probe_id", 1))].append(reading)
 
     summaries = []
     histories = []
 
-    for device_id, records in sorted(devices.items()):
+    for (device_id, probe_id), records in sorted(devices.items()):
         records = sorted(
             records,
             key=lambda record: record["timestamp"],
@@ -71,6 +74,7 @@ def prepare_moisture_inputs(readings):
 
         summaries.append({
             "device_id": device_id,
+            "probe_id": probe_id,
             "reading_count": len(records),
             "first_timestamp": records[0]["timestamp"],
             "last_timestamp": records[-1]["timestamp"],
@@ -94,6 +98,7 @@ def prepare_moisture_inputs(readings):
 
         histories.append({
             "device_id": device_id,
+            "probe_id": probe_id,
             "daily_averages": [
                 {
                     "date": day,

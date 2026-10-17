@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import "./AdvisorPanel.css";
+import { probeKey } from "./probeIdentity.js";
 
 const trendStyles = {
   consistently_decreasing: { arrow: "↓", label: "Declining", tone: "declining" },
@@ -89,7 +90,7 @@ export default function AdvisorPanel({ backendUrl }) {
   const [error, setError] = useState("");
   const findingsByDevice = Object.groupBy(
     analysis?.findings ?? [],
-    (finding) => finding.device,
+    (finding) => probeKey(finding.device, finding.probe_id),
   );
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function AdvisorPanel({ backendUrl }) {
 
           <div className="advisor-nodes">
             {Object.entries(findingsByDevice).map(([device, findings]) => (
-              <NodeFindings key={device} device={device} findings={findings} />
+              <NodeFindings key={device} device={`${findings[0].device} · Probe ${findings[0].probe_id ?? 1}`} findings={findings} />
             ))}
           </div>
 
