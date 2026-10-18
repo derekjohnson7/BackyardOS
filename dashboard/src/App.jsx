@@ -185,7 +185,37 @@ function DewRing({ pct, size = 96, gradientId }) {
   );
 }
 
-function StationCard({ deviceId, readings, activeMetric, onMetricChange, environment = false }) {
+function NodeEnvironmentHeader({ deviceId, readings }) {
+  const latest = readings[readings.length - 1];
+  const status = getNodeStatus(latest?.timestamp);
+  return (
+    <header className="node-environment-strip">
+      <div className="node-environment-heading">
+        <h2 className="station-id">{deviceId}</h2>
+        <div className="node-environment-status">
+          <span className={`node-status ${status.className}`}>{status.label}</span>
+          <span className="station-sync">{latest ? timeAgo(latest.timestamp) : "no data"}</span>
+        </div>
+      </div>
+      <div className="node-environment-chips" aria-label="Shared environmental readings">
+        {METRICS.filter((metric) => metric.key !== "soil_moisture_pct").map((metric) => (
+          <div className="readout-chip" key={metric.key}>
+            <span className="readout-dot" style={{ background: metric.color }} />
+            <span className="readout-label">{metric.label}</span>
+            <span className="readout-value">
+              {latest?.[metric.key] != null
+                ? (metric.transform ? metric.transform(latest[metric.key]) : latest[metric.key]).toFixed(metric.digits)
+                : "—"}
+              <span className="readout-unit">{metric.unit}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </header>
+  );
+}
+
+function StationCard({ readings }) {
   const latest = readings[readings.length - 1];
   const [timeRange, setTimeRange] = useState("24h");
   const soilStatus = latest
@@ -194,8 +224,7 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange, environ
   const nodeStatus = latest
   ? getNodeStatus(latest.timestamp)
   : { label: "NO DATA", className: "offline" };
-  const metrics = METRICS.filter((m) => environment ? m.key !== "soil_moisture_pct" : m.key === "soil_moisture_pct");
-  const metric = metrics.find((m) => m.key === activeMetric) || metrics[0];
+  const metric = METRICS.find((m) => m.key === "soil_moisture_pct");
   const chartHeight = timeRange === "7d" ? 170 : 130;
 
   const chartData = useMemo(() => {
@@ -220,13 +249,13 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange, environ
             : r[metric.key]
           : null,
     }));
-}, [readings, activeMetric, timeRange, metric]);
+}, [readings, timeRange, metric]);
 
   return (
-    <div className={`station-card ${environment ? "environment-card" : "soil-probe-card"}`}>
+    <div className="station-card soil-probe-card">
       <div className="station-head">
         <div>
-          <div className="station-eyebrow">{environment ? "SHARED ENVIRONMENT" : `PROBE ${String(latest?.probe_id ?? 1).padStart(2, "0")}`}</div>
+          <div className="station-eyebrow">{`PROBE ${String(latest?.probe_id ?? 1).padStart(2, "0")}`}</div>
           <h3 className="station-id">{latest?.device_id}</h3>
         </div>
         <div className="station-status-wrap">
@@ -241,48 +270,17 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange, environ
       </div>
 
       <div className="station-body">
-       {!environment && <div className="soil-summary">
-        <DewRing pct={latest ? latest.soil_moisture_pct : 0} gradientId={`dewGrad-${latest?.device_id}-${latest?.probe_id ?? 1}`} />
-
-        <span className={`soil-status ${soilStatus.className}`}>
-          {soilStatus.label}
-        </span>
-      </div>}
-
-        {environment ? <div className="readout-grid">
-          {metrics.map((m) => (
-            <div className="readout-chip" key={m.key}>
-              <span className="readout-dot" style={{ background: m.color }} />
-              <div>
-                <div className="readout-label">{m.label}</div>
-                <div className="readout-value">
-                  {latest && latest[m.key] != null
-                  ? (m.transform ? m.transform(latest[m.key]) : latest[m.key]).toFixed(m.digits)
-                  : "—"}
-                  <span className="readout-unit">{m.unit}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div> : <div className="soil-raw">
-          <span className="readout-label">RAW MOISTURE</span>
-          <span className="readout-value">{latest?.soil_moisture_raw?.toLocaleString() ?? "—"}</span>
-        </div>}
+        <div className="soil-summary">
+          <DewRing pct={latest?.soil_moisture_pct ?? 0} gradientId={`dewGrad-${latest?.device_id}-${latest?.probe_id ?? 1}`} />
+          <div className="soil-gauge-details">
+            <span className={`soil-status ${soilStatus.className}`}>{soilStatus.label}</span>
+            <span className="soil-raw-detail" title="Raw sensor reading before conversion to relative moisture">
+              Raw <strong>{latest?.soil_moisture_raw?.toLocaleString() ?? "—"}</strong>
+            </span>
+          </div>
+        </div>
       </div>
-
-      {environment ? <div className="metric-tabs">
-        {metrics.map((m) => (
-          <button
-            key={m.key}
-            className={`metric-tab ${activeMetric === m.key ? "active" : ""}`}
-            style={activeMetric === m.key ? { borderColor: m.color, color: m.color } : {}}
-            onClick={() => onMetricChange(deviceId, m.key)}
-            aria-pressed={activeMetric === m.key}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div> : <p className="station-eyebrow">SOIL MOISTURE HISTORY</p>}
+      <p className="station-eyebrow">SOIL MOISTURE HISTORY</p>
       <div className="time-range-tabs">
         {TIME_RANGES.map((range) => (
           <button
@@ -423,7 +421,6 @@ export default function SensorDashboard() {
   const [errorMsg, setErrorMsg] = useState("");
   const [lastFetched, setLastFetched] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [activeMetrics, setActiveMetrics] = useState({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeStation, setActiveStation] = useState(0);
   const [weather, setWeather] = useState(null);
@@ -537,13 +534,6 @@ export default function SensorDashboard() {
     }
   }, [backendUrl, fetchData]);
 
-  function handleMetricChange(deviceId, metricKey) {
-    setActiveMetrics((prev) => ({
-      ...prev,
-      [deviceId]: metricKey,
-    }));
-  }
-
   const visibleIds = isMobile ? (deviceIds.length ? [deviceIds[activeStation]] : []) : deviceIds;
   const visibleNodes = [...new Set(visibleIds.map((id) => grouped.get(id)?.[0]?.device_id))].filter(Boolean);
 
@@ -654,15 +644,33 @@ export default function SensorDashboard() {
 
         .node-groups { display: grid; gap: 28px; }
         .node-group { display: grid; gap: 12px; min-width: 0; }
-        .environment-card .readout-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          width: 100%;
+        .node-environment-strip {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px 24px;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--glass-line);
+          background: var(--glass);
+          border-radius: 12px;
+          flex-wrap: wrap;
         }
-        .environment-card .station-body { display: block; }
-        .soil-raw { display: flex; flex-direction: column; gap: 6px; }
-        .soil-probe-card .station-body { justify-content: space-between; }
-        .environment-card .readout-chip { min-width: 0; }
+        .node-environment-heading { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .node-environment-heading .station-id { font-size: 16px; margin: 0; }
+        .node-environment-status { display: flex; align-items: center; gap: 8px; }
+        .node-environment-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .node-environment-chips .readout-chip { gap: 6px; padding: 6px 9px; }
+        .soil-gauge-details { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .soil-raw-detail { font-family: var(--font-mono); font-size: 10px; color: var(--ink-dim); }
+        .soil-raw-detail strong { font-weight: 400; }
+        .soil-probe-card .soil-summary { flex-direction: row; gap: 14px; }
+        @media (max-width: 720px) {
+          .node-environment-strip { padding: 10px; gap: 10px; }
+          .node-environment-heading { justify-content: space-between; width: 100%; gap: 8px; }
+          .node-environment-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 5px; }
+          .node-environment-chips .readout-chip { flex-wrap: wrap; justify-content: center; gap: 4px; padding: 6px; }
+          .node-environment-chips .readout-value { font-size: 12px; }
+        }
 
         .station-grid {
           display: grid;
@@ -1198,21 +1206,12 @@ export default function SensorDashboard() {
           <div className="node-groups">
             {visibleNodes.map((nodeId) => (
               <section className="node-group" key={nodeId} aria-label={`${nodeId} sensors`}>
-                <StationCard
-                  deviceId={`environment:${nodeId}`}
-                  readings={environments.get(nodeId) ?? []}
-                  activeMetric={activeMetrics[`environment:${nodeId}`] || "temperature_c"}
-                  onMetricChange={handleMetricChange}
-                  environment
-                />
+                <NodeEnvironmentHeader deviceId={nodeId} readings={environments.get(nodeId) ?? []} />
                 <div className="station-grid">
                   {visibleIds.filter((id) => grouped.get(id)?.[0]?.device_id === nodeId).map((id) => (
                     <StationCard
                       key={id}
-                      deviceId={id}
                       readings={grouped.get(id)}
-                      activeMetric="soil_moisture_pct"
-                      onMetricChange={handleMetricChange}
                     />
                   ))}
                 </div>
