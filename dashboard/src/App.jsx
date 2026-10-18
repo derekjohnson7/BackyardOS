@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import AdvisorPanel from "./AdvisorPanel";
-import { groupReadings } from "./probeIdentity.js";
+import { groupReadings, groupEnvironmentReadings } from "./probeIdentity.js";
 import {
   ResponsiveContainer,
   LineChart,
@@ -185,7 +185,7 @@ function DewRing({ pct, size = 96, gradientId }) {
   );
 }
 
-function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
+function StationCard({ deviceId, readings, activeMetric, onMetricChange, environment = false }) {
   const latest = readings[readings.length - 1];
   const [timeRange, setTimeRange] = useState("24h");
   const soilStatus = latest
@@ -194,7 +194,8 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
   const nodeStatus = latest
   ? getNodeStatus(latest.timestamp)
   : { label: "NO DATA", className: "offline" };
-  const metric = METRICS.find((m) => m.key === activeMetric) || METRICS[0];
+  const metrics = METRICS.filter((m) => environment ? m.key !== "soil_moisture_pct" : m.key === "soil_moisture_pct");
+  const metric = metrics.find((m) => m.key === activeMetric) || metrics[0];
   const chartHeight = timeRange === "7d" ? 170 : 130;
 
   const chartData = useMemo(() => {
@@ -213,19 +214,19 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
     .map((r) => ({
       label: fmtTime(r.timestamp),
       value:
-        r[activeMetric] != null
+        r[metric.key] != null
           ? metric.transform
-            ? metric.transform(r[activeMetric])
-            : r[activeMetric]
+            ? metric.transform(r[metric.key])
+            : r[metric.key]
           : null,
     }));
 }, [readings, activeMetric, timeRange, metric]);
 
   return (
-    <div className="station-card">
+    <div className={`station-card ${environment ? "environment-card" : "soil-probe-card"}`}>
       <div className="station-head">
         <div>
-          <div className="station-eyebrow">PROBE {String(latest?.probe_id ?? 1).padStart(2, "0")}</div>
+          <div className="station-eyebrow">{environment ? "SHARED ENVIRONMENT" : `PROBE ${String(latest?.probe_id ?? 1).padStart(2, "0")}`}</div>
           <h3 className="station-id">{latest?.device_id}</h3>
         </div>
         <div className="station-status-wrap">
@@ -240,16 +241,16 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
       </div>
 
       <div className="station-body">
-       <div className="soil-summary">
+       {!environment && <div className="soil-summary">
         <DewRing pct={latest ? latest.soil_moisture_pct : 0} gradientId={`dewGrad-${latest?.device_id}-${latest?.probe_id ?? 1}`} />
 
         <span className={`soil-status ${soilStatus.className}`}>
           {soilStatus.label}
         </span>
-      </div>
+      </div>}
 
-        <div className="readout-grid">
-          {METRICS.filter((m) => m.key !== "soil_moisture_pct").map((m) => (
+        {environment ? <div className="readout-grid">
+          {metrics.map((m) => (
             <div className="readout-chip" key={m.key}>
               <span className="readout-dot" style={{ background: m.color }} />
               <div>
@@ -263,11 +264,14 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
               </div>
             </div>
           ))}
-        </div>
+        </div> : <div className="soil-raw">
+          <span className="readout-label">RAW MOISTURE</span>
+          <span className="readout-value">{latest?.soil_moisture_raw?.toLocaleString() ?? "—"}</span>
+        </div>}
       </div>
 
-      <div className="metric-tabs">
-        {METRICS.map((m) => (
+      {environment ? <div className="metric-tabs">
+        {metrics.map((m) => (
           <button
             key={m.key}
             className={`metric-tab ${activeMetric === m.key ? "active" : ""}`}
@@ -278,7 +282,7 @@ function StationCard({ deviceId, readings, activeMetric, onMetricChange }) {
             {m.label}
           </button>
         ))}
-      </div>
+      </div> : <p className="station-eyebrow">SOIL MOISTURE HISTORY</p>}
       <div className="time-range-tabs">
         {TIME_RANGES.map((range) => (
           <button
@@ -510,6 +514,7 @@ export default function SensorDashboard() {
 
   const grouped = useMemo(() => groupReadings(rows, parseTimestamp), [rows]);
   const deviceIds = useMemo(() => Array.from(grouped.keys()).sort(), [grouped]);
+  const environments = useMemo(() => groupEnvironmentReadings(rows, parseTimestamp), [rows]);
 
   useEffect(() => {
     if (activeStation >= deviceIds.length) setActiveStation(0);
@@ -540,6 +545,7 @@ export default function SensorDashboard() {
   }
 
   const visibleIds = isMobile ? (deviceIds.length ? [deviceIds[activeStation]] : []) : deviceIds;
+  const visibleNodes = [...new Set(visibleIds.map((id) => grouped.get(id)?.[0]?.device_id))].filter(Boolean);
 
   return (
     <div className="dash-root">
@@ -645,6 +651,18 @@ export default function SensorDashboard() {
           width: 8px; height: 8px; border-radius: 50%;
           border: 2px solid var(--dusk-deep);
         }
+
+        .node-groups { display: grid; gap: 28px; }
+        .node-group { display: grid; gap: 12px; min-width: 0; }
+        .environment-card .readout-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          width: 100%;
+        }
+        .environment-card .station-body { display: block; }
+        .soil-raw { display: flex; flex-direction: column; gap: 6px; }
+        .soil-probe-card .station-body { justify-content: space-between; }
+        .environment-card .readout-chip { min-width: 0; }
 
         .station-grid {
           display: grid;
@@ -1177,19 +1195,29 @@ export default function SensorDashboard() {
         </div>
       ) : (
         <>
-          <div className="station-grid">
-            {visibleIds.map((id) => {
-
-              return (
+          <div className="node-groups">
+            {visibleNodes.map((nodeId) => (
+              <section className="node-group" key={nodeId} aria-label={`${nodeId} sensors`}>
                 <StationCard
-                  key={id}
-                  deviceId={id}
-                  readings={grouped.get(id)}
-                  activeMetric={activeMetrics[id] || "soil_moisture_pct"}
+                  deviceId={`environment:${nodeId}`}
+                  readings={environments.get(nodeId) ?? []}
+                  activeMetric={activeMetrics[`environment:${nodeId}`] || "temperature_c"}
                   onMetricChange={handleMetricChange}
+                  environment
                 />
-              );
-            })}
+                <div className="station-grid">
+                  {visibleIds.filter((id) => grouped.get(id)?.[0]?.device_id === nodeId).map((id) => (
+                    <StationCard
+                      key={id}
+                      deviceId={id}
+                      readings={grouped.get(id)}
+                      activeMetric="soil_moisture_pct"
+                      onMetricChange={handleMetricChange}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
 
 <div className="insight-grid">
