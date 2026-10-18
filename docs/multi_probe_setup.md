@@ -3,6 +3,16 @@
 Probe IDs 1–4 use GPIO35, GPIO34, GPIO32, GPIO33 respectively. BME280 SDA uses
 GPIO21 and SCL uses GPIO22. Power off before changing wiring.
 
+## Current deployment status — October 17, 2026
+
+Backend and dashboard support are deployed. The multi-probe sketch has been uploaded to the physical ESP32 and four probes have produced successful HTTP 200 uploads, persisted records, and separate dashboard cards over repeated cycles indoors.
+
+The six-connection perfboard and four longer probe cable paths passed continuity checks. Four probes are currently connected and tested; positions 5 and 6 are expansion capacity only.
+
+**Outdoor installation is pending additional adhesive-lined heat shrink for the BME280 wiring.** Outdoor Wi-Fi and weather-exposure reliability have not been verified. Soil percentages remain provisional.
+
+The dashboard presents shared temperature, humidity, and pressure once per node in a compact header, with individual soil gauges/charts below. Environmental values remain repeated in stored probe rows for compatibility; the display does not rewrite or average them.
+
 ## Deploy backend and dashboard first
 
 Backend startup adds `sensorreading.probe_id INTEGER NOT NULL DEFAULT 1` if
@@ -42,8 +52,8 @@ Other API consumers must also use both fields to group readings.
 
 - Per-probe calibration entries inherit 2800 dry / 1090 wet as placeholders.
   Raw inputs were tested; new probe percentages are not yet calibrated.
-- Compile and test the sketch on the Mac. No ESP32 toolchain or physical board
-  was available in the development environment.
+- The sketch was uploaded and tested on the physical ESP32 using the Mac.
+  Automated firmware compilation was not performed in this development workspace.
 - Non-finite BME280 values skip uploads. Plausible-looking faulty values still
   need separate quality checks and recovery work.
 - Shared environmental values repeat per probe row for endpoint compatibility;
@@ -63,4 +73,6 @@ Other API consumers must also use both fields to group readings.
   probeIdentity and its test; App.jsx retains existing lint errors unrelated
   to this change (unused React import and React hook purity/effect rules).
 - Migration was tested with SQLite, including existing rows and repeated startup.
-  Production Supabase/PostgreSQL migration has not been run from this workspace.
+  The deployed production backend now accepts and persists distinct probe IDs,
+  verified through successful uploads and Supabase records. The production
+  migration was not executed manually from this workspace.
