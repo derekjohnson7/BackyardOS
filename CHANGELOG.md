@@ -1,4 +1,26 @@
-# ChangelogAll notable changes to BackyardOS are documented in this file.
+# Changelog
+
+All notable changes to BackyardOS are documented in this file.
+
+## 2026-10-17 — Four-probe indoor verification and dashboard cleanup
+
+### Deployed and verified
+
+- Added `probe_id` support to ingestion, persistence, latest readings, and Advisor grouping; existing readings and legacy uploads default to Probe 1.
+- Deployed the multi-probe backend and dashboard and ran the new firmware on the ESP32.
+- Confirmed four independent probes on node 01 (GPIO35, GPIO34, GPIO32, GPIO33), successful HTTP 200 uploads, Supabase persistence, and separate dashboard cards over repeated cycles.
+- Built and continuity-tested the six-connection perfboard; four longer soil-probe cable paths are connected and tested indoors.
+- Consolidated shared BME280 values into one compact header per node, with three environmental chips and individual soil charts below.
+- Moved raw moisture beside its soil gauge. Dashboard presentation changes did not alter stored readings.
+
+### Remaining
+
+- Outdoor installation has not occurred. Additional adhesive-lined heat shrink is needed to finish protecting the BME280 wiring.
+- Outdoor Wi-Fi, weather exposure, and long-term reliability remain unverified.
+- Probe connections 5 and 6 provide expansion capacity, not six-probe verification.
+- Moisture percentages and soil-condition thresholds remain provisional.
+
+---
 
 ## v0.11.0 — Backyard Advisor
 

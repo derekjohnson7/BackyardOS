@@ -2,23 +2,27 @@
 
 BackyardOS is an IoT environmental-monitoring system built to better understand the microclimate and soil conditions around my backyard.
 
-The project began after repeatedly losing plants to suspected root rot caused by poor drainage in heavy clay soil. Rather than continuing to guess at soil conditions, BackyardOS collects real environmental data that can be used to understand drainage behavior, identify plant stress, and support better irrigation decisions.**Live Dashboard:** [backyardos-dash.onrender.com](https://backyardos-dash.onrender.com/)
+The project began after repeatedly losing plants to suspected root rot caused by poor drainage in heavy clay soil. Rather than continuing to guess at soil conditions, BackyardOS collects real environmental data that can be used to understand drainage behavior, identify plant stress, and support better irrigation decisions.
+
+**Live Dashboard:** [backyardos-dash.onrender.com](https://backyardos-dash.onrender.com/)
 
 ## Current Status
 
 
-BackyardOS is currently at **v0.10.0 — Outdoor Deployment**, with **v0.11.0 — Backyard Advisor** development underway.
+BackyardOS has a working indoor monitoring pipeline, with **v0.10.0 — Outdoor Deployment** still in progress and **v0.11.0 — Backyard Advisor** development underway.
+
+**As of October 17, 2026:** the new multi-probe perfboard is operating indoors. Four soil probes have been tested through the longer cables, with successful production uploads and separate dashboard cards. Outdoor installation is pending additional adhesive-lined heat shrink for the BME280 wiring. Outdoor reliability has not yet been verified.
 
 
 The complete environmental-monitoring pipeline is operational:
 
 `Soil Moisture Sensor + BME280 → ESP32 → Wi-Fi/HTTPS → FastAPI on Render → Supabase PostgreSQL → React Dashboard`
 
-Two independent ESP32 sensor nodes currently collect soil-moisture, temperature, humidity, and atmospheric-pressure readings. Each node uses a unique device ID, allowing both probes to report simultaneously without mixing their telemetry.
+Two ESP32 nodes report under unique device IDs. `backyard-node-01` now collects four independent soil-probe readings and shares one BME280 environmental reading per cycle; `backyard-node-02` remains a separate single-probe node. Readings are identified by both `device_id` and `probe_id`.
 
 The system currently supports:
 
-- Capacitive soil-moisture sensing through ESP32 GPIO35.
+- Independent soil-moisture sensing on GPIO35, GPIO34, GPIO32, and GPIO33 for the four-probe node.
 - BME280 temperature, humidity, and pressure sensing over I2C.
 - Multiple independently identified ESP32 sensor nodes.
 - UTC timestamps synchronized through NTP.
@@ -123,7 +127,8 @@ Each sensor node uses:
 - ESP32 development board
 - Capacitive Soil Moisture Sensor v2.0
 - BME280 temperature, humidity, and pressure sensor
-- Breadboard and jumper wires for the current prototype
+- Node 01: soldered 50 × 70 mm perfboard with detachable JST connections and longer soil-probe cables
+- Six soil-probe connection positions on the new board; four connected and tested
 - USB power supply
 
 Two sensor nodes are currently operating:
@@ -135,7 +140,12 @@ Two sensor nodes are currently operating:
 
 | Component | ESP32 Connection |
 |---|---:|
-| Soil Moisture Analog Output | GPIO35 |
+| Soil Probe 1 Analog Output | GPIO35 |
+| Soil Probe 2 Analog Output | GPIO34 |
+| Soil Probe 3 Analog Output | GPIO32 |
+| Soil Probe 4 Analog Output | GPIO33 |
+| Planned Soil Probe 5 (not yet verified) | GPIO36 / VP |
+| Planned Soil Probe 6 (not yet verified) | GPIO39 / VN |
 | BME280 SDA | GPIO21 |
 | BME280 SCL | GPIO22 |
 | BME280 Power | 3.3V |
@@ -157,7 +167,10 @@ The ESP32 firmware currently:
 - Validates the backend TLS certificate chain.
 - Retries failed telemetry requests up to three times.
 - Submits telemetry every ten minutes.
-- Identifies each sensor through a persistent `device_id`.
+- Identifies each node through `device_id` and each soil probe through `probe_id`.
+- The multi-probe sketch reads the BME280 once per cycle and posts four separately identified probe readings with the same timestamp.
+
+The four-probe sketch is in `firmware/BackyardOS_MultiProbe/`. See [multi-probe setup](docs/multi_probe_setup.md) for upload settings and verification steps.
 
 Sensitive credentials are stored locally in `secrets.h` and are excluded from version control.
 
@@ -193,7 +206,7 @@ This endpoint supports dashboard charts and short-term environmental trend analy
 
 #### `GET /readings/latest`
 
-Returns the newest available reading from each sensor node.
+Returns the newest available reading for each `(device_id, probe_id)` pair. Legacy uploads without `probe_id` default to Probe 1.
 
 This lightweight endpoint is intended for:
 
@@ -223,10 +236,9 @@ The BackyardOS dashboard is built with React, Vite, and Recharts.
 It displays:
 
 - Current soil moisture
-- Current temperature
-- Current humidity
-- Current atmospheric pressure
-- Historical sensor charts
+- One compact temperature, humidity, and pressure header per node
+- Separate soil gauges and historical soil charts per probe
+- Raw moisture as secondary text beside each soil gauge
 - Six-hour, 24-hour, and seven-day time ranges
 - Probe-specific views
 - Local weather and forecast context
@@ -333,7 +345,7 @@ Testing currently evaluates:
 - Dashboard freshness reporting
 - Backend and database usage
 
-Probe 1 remains active as the primary reference node. Probe 2 is used for additional Wi-Fi, sensor, and deployment testing.
+Node 01 now uses the new four-probe perfboard indoors. Node 02 remains independent. Hardware, cable, sensor, and calibration changes should be treated as boundaries when comparing historical readings; retaining a device ID does not establish an unchanged physical setup.
 
 ## Repository Structure
 
@@ -445,8 +457,12 @@ BackyardOS/
 - [ ] Establish field capacity in representative backyard clay soil.
 - [ ] Refine dry, healthy, wet, and saturated thresholds.
 - [ ] Compare calibration behavior between probes.
-- [ ] Move the electronics beyond the breadboard prototype.
-- [ ] Select or design a weather-resistant enclosure.
+- [x] Assemble and continuity-test the new soldered perfboard.
+- [x] Verify four independent probes through the longer cables indoors.
+- [x] Deploy multi-probe firmware, backend support, and dashboard grouping.
+- [x] Confirm four successful uploads per cycle and separate probe cards.
+- [x] Select a weather-resistant enclosure.
+- [ ] Finish protecting the BME280 wiring when additional heat shrink arrives.
 - [ ] Add protected ventilation or radiation shielding for the BME280.
 - [ ] Route the soil probe through a sealed cable gland.
 - [ ] Validate outdoor Wi-Fi reliability.
@@ -484,6 +500,7 @@ Potential future computer-vision work may include:
 
 Additional project documentation is available in:
 
+- [Multi-probe setup and deployment status](docs/multi_probe_setup.md)
 - [Calibration](docs/calibration.md)
 - [Engineering Design](docs/engineering_design.md)
 - [Project Notes](docs/notes.md)
