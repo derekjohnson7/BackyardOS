@@ -2,7 +2,7 @@
 
 BackyardOS is organized into sensing, network, application, storage, visualization, and home-automation layers.
 
-The production system currently uses two independent ESP32 sensor nodes. Each node collects local environmental data and sends authenticated telemetry to a hosted FastAPI backend.
+The production system currently uses two independent ESP32 sensor nodes. `backyard-node-01` collects four independently identified soil-probe readings and one shared BME280 environmental reading per cycle. `backyard-node-02` remains an independent single-probe node. Both send authenticated telemetry to a hosted FastAPI backend.
 
 ## Current Production Architecture
 
@@ -15,8 +15,8 @@ The production system currently uses two independent ESP32 sensor nodes. Each no
         +-------------------+                 +-------------------+
         | Backyard Node 01  |                 | Backyard Node 02  |
         |                   |                 |                   |
-        | Soil Sensor       |                 | Soil Sensor       |
-        | BME280            |                 | BME280            |
+        | 4 Soil Probes     |                 | 1 Soil Probe      |
+        | 1 BME280          |                 | 1 BME280          |
         | ESP32             |                 | ESP32             |
         +-------------------+                 +-------------------+
                   |                                     |
@@ -50,7 +50,7 @@ The production system currently uses two independent ESP32 sensor nodes. Each no
 
 ## Sensor Node Architecture
 
-Each BackyardOS sensor node combines three primary hardware components:
+Each BackyardOS sensor node combines an ESP32, one BME280, and one or more capacitive soil-moisture probes:
 
 ```text
           Backyard Environment
@@ -59,8 +59,8 @@ Each BackyardOS sensor node combines three primary hardware components:
         |                     |
         v                     v
 +----------------+    +----------------+
-| Soil Moisture  |    |     BME280     |
-| Sensor         |    | Temp / RH / P  |
+| Soil Probe(s)  |    |     BME280     |
+| Independent ID |    | Temp / RH / P  |
 +----------------+    +----------------+
         |                     |
         +----------+----------+
@@ -72,24 +72,31 @@ Each BackyardOS sensor node combines three primary hardware components:
             +-------------+
 ```
 
-Each sensor node operates independently and uses a unique `device_id`.
+Each sensor node operates independently and uses a unique `device_id`. Soil readings within a node use `probe_id`, so the stable identity of a soil stream is the `(device_id, probe_id)` pair.
 
 Current device identifiers:
 
 - `backyard-node-01`
 - `backyard-node-02`
 
-This prevents readings from different physical probes from being mixed in the database, dashboard, or Home Assistant.
+This prevents readings from different nodes or physical soil probes from being mixed in the database, dashboard, Advisor analysis, or Home Assistant.
 
 ## Hardware Connections
 
-### Capacitive Soil-Moisture Sensor
+### Capacitive Soil-Moisture Sensors
 
-| Sensor Connection | ESP32 Connection |
-|---|---:|
-| VCC | 3.3V |
-| GND | GND |
-| AOUT | GPIO35 |
+Node 01 currently uses four probes on separate ADC inputs. Node 02 retains the original single-probe connection.
+
+| Probe | ESP32 Connection | Status |
+|---|---:|---|
+| Probe 1 | GPIO35 | Verified |
+| Probe 2 | GPIO34 | Verified on Node 01 |
+| Probe 3 | GPIO32 | Verified on Node 01 |
+| Probe 4 | GPIO33 | Verified on Node 01 |
+| Probe 5 | GPIO36 / VP | Expansion position; not verified |
+| Probe 6 | GPIO39 / VN | Expansion position; not verified |
+
+All soil probes share 3.3V and GND while retaining isolated analog signal paths.
 
 The moisture sensor produces an analog signal.
 
@@ -118,17 +125,18 @@ It provides:
 
 Each ESP32 currently performs the following operations:
 
-1. Reads the raw soil-moisture ADC value from GPIO35.
-2. Converts the raw ADC reading into a constrained percentage.
-3. Reads temperature, humidity, and pressure from the BME280.
+1. Reads each configured soil probe from its assigned ADC input.
+2. Converts each raw ADC reading into a constrained, still-provisional percentage.
+3. Reads temperature, humidity, and pressure from the BME280 once per cycle.
 4. Connects to the configured Wi-Fi network.
 5. Synchronizes UTC time through NTP.
-6. Builds a timestamped JSON telemetry payload.
-7. Opens a validated HTTPS connection to the FastAPI backend.
-8. Authenticates the request using an API key.
-9. Sends the reading to `POST /readings`.
-10. Retries failed telemetry requests up to three times.
-11. Waits until the next ten-minute reporting interval.
+6. Builds timestamped JSON telemetry payloads identified by `device_id` and `probe_id`.
+7. Reuses the cycle's BME280 values for each probe payload on a multi-probe node.
+8. Opens a validated HTTPS connection to the FastAPI backend.
+9. Authenticates each request using an API key.
+10. Sends each reading to `POST /readings`.
+11. Retries failed telemetry requests up to three times.
+12. Waits until the next ten-minute reporting interval.
 
 ### ESP32 Reliability Behavior
 
@@ -177,6 +185,7 @@ A telemetry payload includes:
 
 - UTC timestamp
 - Device ID
+- Probe ID
 - Raw soil-moisture value
 - Calculated soil-moisture percentage
 - Temperature in Celsius
@@ -228,7 +237,7 @@ Older readings remain stored in Supabase even though the standard endpoint does 
 
 #### `GET /readings/latest`
 
-Returns the newest available reading from each unique `device_id`.
+Returns the newest available reading for each unique `(device_id, probe_id)` pair. Legacy uploads without `probe_id` default to Probe 1.
 
 This endpoint is intended for lightweight consumers that need current conditions without downloading historical data.
 
@@ -265,7 +274,7 @@ Production                   Development Fallback
 
 Supabase PostgreSQL is used for hosted production persistence.
 
-The database stores telemetry from both sensor nodes using the `device_id` field to maintain separation between probes.
+The database stores telemetry using both `device_id` and `probe_id` to maintain separation between nodes and individual soil probes.
 
 The production database preserves:
 
@@ -275,6 +284,7 @@ The production database preserves:
 - Atmospheric-pressure readings
 - Timestamps
 - Device identity
+- Probe identity
 
 ### Local Development Database
 
@@ -307,14 +317,14 @@ React Dashboard
 The dashboard:
 
 - Loads readings from the most recent seven days.
-- Separates telemetry by `device_id`.
-- Displays the newest reading for each probe.
-- Supports switching between sensor nodes.
+- Separates telemetry by `(device_id, probe_id)`.
+- Displays one compact temperature, humidity, and pressure header per node.
+- Displays the newest soil reading and an independent history for each probe.
+- Supports switching among probes without duplicating shared environmental displays.
 - Displays historical charts.
 - Supports six-hour, 24-hour, and seven-day chart views.
 - Refreshes sensor data every five minutes.
 - Refreshes weather data every 15 minutes.
-
 
 ## Backyard Advisor Architecture
 
@@ -326,8 +336,8 @@ Backyard Advisor adds deterministic analysis and an optional local language-mode
 
 The hosted FastAPI service exposes:
 
-- `GET /advisor` for rule-based analysis of the latest reading from each device.
-- `GET /advisor/trends` for deterministic 24-hour or 72-hour trend analysis.
+- `GET /advisor` for rule-based analysis of the latest reading from each device/probe pair.
+- `GET /advisor/trends` for deterministic 24-hour or 72-hour trend analysis grouped by device and probe.
 - `GET /advisor/analysis?days=7` for verified multi-day findings consumed by the dashboard.
 
 Deterministic application code calculates moisture direction, range, net change, data continuity, sample sufficiency, and supported temperature relationships. These verified findings—not model-generated measurements—are the numerical source of truth.
@@ -393,7 +403,7 @@ Home Assistant
 GET /readings/latest
       |
       v
-Newest reading from each probe
+Newest reading from each device/probe pair
       |
       v
 Individual Home Assistant entities
@@ -403,14 +413,10 @@ Home Assistant uses the lightweight `/readings/latest` endpoint instead of downl
 
 BackyardOS entities can include:
 
-- Probe 1 soil moisture
-- Probe 1 temperature
-- Probe 1 humidity
-- Probe 1 pressure
-- Probe 2 soil moisture
-- Probe 2 temperature
-- Probe 2 humidity
-- Probe 2 pressure
+- Per-probe soil moisture for each `(device_id, probe_id)` pair
+- Node-level temperature
+- Node-level humidity
+- Node-level atmospheric pressure
 - Probe freshness or availability
 
 This architecture keeps the Home Assistant integration independent from the React dashboard.
@@ -554,9 +560,11 @@ Currently verified:
 
 - Two independent ESP32 sensor nodes
 - Two BME280 environmental sensors
-- Two capacitive soil-moisture sensors
+- Four independently identified soil probes on Node 01
+- One independent soil probe on Node 02
+- Shared BME280 readings recorded once per Node 01 cycle and attached to each probe payload
 - BME280 communication at `0x76`
-- Soil sensing through GPIO35
+- Soil sensing through GPIO35, GPIO34, GPIO32, and GPIO33 on Node 01
 - NTP-based UTC timestamps
 - Wi-Fi reconnection
 - HTTPS telemetry
@@ -564,7 +572,7 @@ Currently verified:
 - API-key authentication
 - FastAPI validation
 - Supabase persistence
-- Multi-probe dashboard views
+- Per-probe ingestion, persistence, latest-reading retrieval, Advisor grouping, and dashboard histories
 - Lightweight latest-reading retrieval
 - Home Assistant integration
 - Weather and forecast integration
@@ -581,8 +589,8 @@ Current priorities are:
 - Refining dry, healthy, wet, and saturated thresholds.
 - Comparing calibration behavior between probes.
 - Monitoring long-term sensor drift.
-- Moving beyond the breadboard prototype.
-- Selecting or designing a weather-resistant enclosure.
+- Completing outdoor protection for the perfboard-based assembly.
+- Finishing adhesive-lined heat-shrink protection for the BME280 wiring.
 - Protecting the BME280 while maintaining airflow.
 - Routing the soil probe through a sealed cable gland.
 - Validating outdoor Wi-Fi performance.
