@@ -13,7 +13,7 @@ Adafruit_BME280 bme;
 
 // --- Moisture sensor ---
 const char* DEVICE_ID = "backyard-node-01";
-const bool UPLOAD_ENABLED = false;  // Enable only after backend deployment.
+const bool UPLOAD_ENABLED = true;  // Enable only after backend deployment.
 const unsigned long READING_INTERVAL_MS = UPLOAD_ENABLED ? 600000UL : 6000UL;
 struct ProbeConfig {
   int id;
