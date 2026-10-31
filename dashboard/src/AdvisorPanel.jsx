@@ -24,7 +24,7 @@ function NodeFindings({ device, findings }) {
   const trend = findings.find((finding) => finding.id.endsWith("-TREND"));
   const temperature = findings.find((finding) => finding.id.endsWith("-TEMP"));
   const badge = trendStyles[trend?.daily_direction] ?? trendStyles.insufficient_data;
-  const change = trend?.net_change_percentage_points;
+  const change = trend?.first_to_last_daily_average_change_percentage_points;
   const dailySummary = {
     consistently_decreasing: `Daily moisture averages declined across all ${trend?.daily_days_analyzed} analyzed dates.`,
     consistently_increasing: `Daily moisture averages rose across all ${trend?.daily_days_analyzed} analyzed dates.`,
@@ -33,8 +33,8 @@ function NodeFindings({ device, findings }) {
     insufficient_data: "There aren't enough days with readings to describe a daily moisture trend.",
   }[trend?.daily_direction] ?? "There isn't enough data to describe a daily moisture trend.";
   const changeSummary = typeof change !== "number" ? null
-    : change === 0 ? "The latest reading matches the first reading in this window."
-    : `The latest reading is ${Math.abs(change)} percentage points ${change > 0 ? "above" : "below"} the first reading in this window.`;
+    : change === 0 ? "The first and last qualifying daily averages match."
+    : `The last qualifying daily average is ${Math.abs(change)} percentage points ${change > 0 ? "above" : "below"} the first.`;
 
   return (
     <article className="advisor-node">

@@ -27,8 +27,6 @@ def build_moisture_findings(summaries, histories):
     ):
         device_id = summary["device_id"]
         probe_id = summary.get("probe_id", 1)
-        change = summary["net_change_percentage_points"]
-
         daily_averages = history_by_device[
             (device_id, probe_id)
         ]["daily_averages"]
@@ -86,7 +84,9 @@ def build_moisture_findings(summaries, histories):
             "device": device_id,
             "probe_id": probe_id,
             "observation": observation,
-            "net_change_percentage_points": change,
+            "first_to_last_daily_average_change_percentage_points": daily[
+                "daily_average_change_points"
+            ],
             "daily_direction": direction,
             "daily_range_percentage_points": daily[
                 "daily_range_points"
@@ -121,6 +121,7 @@ def analyze_daily_trend(daily_averages):
             "increasing_intervals": 0,
             "decreasing_intervals": 0,
             "unchanged_intervals": 0,
+            "daily_average_change_points": None,
         }
 
     differences = consecutive_changes(values)
@@ -146,6 +147,7 @@ def analyze_daily_trend(daily_averages):
         "increasing_intervals": increasing,
         "decreasing_intervals": decreasing,
         "unchanged_intervals": unchanged,
+        "daily_average_change_points": round(values[-1] - values[0], 2),
     }
 
 

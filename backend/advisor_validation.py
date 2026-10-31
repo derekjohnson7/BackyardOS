@@ -41,6 +41,25 @@ def validate_advisor_response(response, verified_findings):
     if errors:
         return errors
 
+    unknowns = response["unknowns"]
+    if not unknowns:
+        errors.append("Unknowns must identify unresolved project limitations")
+    elif not all(isinstance(value, str) and value.strip() for value in unknowns):
+        errors.append("Each unknown must be a nonempty string")
+    else:
+        unknown_text = " ".join(unknowns).lower()
+        if "calibrat" not in unknown_text:
+            errors.append("Unknowns must identify incomplete field calibration")
+        if "plant" not in unknown_text or not re.search(r"assign|map|link|associat", unknown_text):
+            errors.append("Unknowns must identify missing plant assignments")
+
+    confidence = response["confidence"]
+    if confidence.get("level") != "low":
+        errors.append("Confidence must remain low until field calibration is validated")
+    reason = confidence.get("reason")
+    if not isinstance(reason, str) or "calibrat" not in reason.lower():
+        errors.append("Confidence reason must identify calibration limitations")
+
     findings_by_id = {
         finding["id"]: finding
         for finding in verified_findings
@@ -260,5 +279,24 @@ def validate_advisor_response(response, verified_findings):
             explanation, flags=re.IGNORECASE,
         ):
             errors.append(f"Use explicit historical dates instead of relative days: {finding_id}")
+
+        elif "daily_analysis_start" in expected and re.search(
+            r"\b(?:per|each)\s+day\b",
+            explanation,
+            flags=re.IGNORECASE,
+        ):
+            errors.append(f"First-to-last change must not be described as a daily rate: {finding_id}")
+        elif "daily_analysis_start" in expected and re.search(
+            r"\b(?:no|without)\s+(?:significant\s+)?reporting\s+gaps?\b",
+            explanation,
+            flags=re.IGNORECASE,
+        ):
+            errors.append(f"Reporting-gap claim is not supported: {finding_id}")
+        elif "overall_correlation" in expected and re.search(
+            r"\b(?:weak|moderate|strong|negligible|significant|insignificant)\b",
+            explanation,
+            flags=re.IGNORECASE,
+        ):
+            errors.append(f"Correlation strength or significance label lacks a criterion: {finding_id}")
 
     return errors
