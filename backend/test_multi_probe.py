@@ -63,7 +63,7 @@ def test_latest_and_advisor_separate_all_four_probes(client):
     trends = [f for f in findings if f['id'].endswith('-TREND')]
     temps = [f for f in findings if f['id'].endswith('-TEMP')]
     assert len(trends) == len(temps) == 4
-    assert all(f['net_change_percentage_points'] == 1 for f in trends)
+    assert all(f['first_to_last_daily_average_change_percentage_points'] is None for f in trends)
     assert all(f['valid_readings'] == 2 for f in temps)
     assert len({f['id'] for f in findings}) == 8
 
@@ -97,6 +97,6 @@ def test_historical_correlations_keep_opposite_probe_histories_separate():
     summaries, histories = prepare_moisture_inputs(prepared)
     trends = build_moisture_findings(summaries, histories)
     temperatures = build_temperature_findings(prepared)
-    assert {f['probe_id']: f['net_change_percentage_points'] for f in trends} == {1: 29, 2: -29}
+    assert all(f['first_to_last_daily_average_change_percentage_points'] is None for f in trends)
     assert {f['probe_id']: f['overall_correlation'] for f in temperatures} == {1: 1.0, 2: -1.0}
     assert all(f['valid_readings'] == 30 for f in temperatures)

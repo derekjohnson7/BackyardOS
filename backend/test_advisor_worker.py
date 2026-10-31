@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from advisor_data import prepare_sensor_readings, prepare_moisture_inputs
 from advisor_analysis import build_moisture_findings, build_temperature_findings
-from advisor_worker import run_advisor_cycle
+from advisor_worker import attach_verified_evidence, run_advisor_cycle, response_schema
 from advisor_validation import evidence_for_finding
 
 
@@ -40,7 +40,8 @@ class WorkerTests(unittest.TestCase):
         self.reply = {"done": True, "message": {"content": json.dumps(response_fixture(self.analysis))}}
 
     def run_mocked(self, reply=None):
-        with patch("advisor_worker.request_json", side_effect=[self.analysis, self.reply if reply is None else reply]):
+        model_reply = self.reply if reply is None else reply
+        with patch("advisor_worker.request_json", side_effect=[self.analysis, model_reply, model_reply]):
             return run_advisor_cycle(backend_url="http://example.test", output_path=self.output)
 
     def test_complete_http_cycle(self):
@@ -76,7 +77,13 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(received[0], "/advisor/analysis?days=7")
         self.assertEqual(received[1]["model"], "mistral-nemo")
         self.assertFalse(received[1]["stream"])
-        self.assertEqual(received[1]["format"], "json")
+        schema = received[1]["format"]
+        self.assertEqual(schema, response_schema(len(analysis["findings"])))
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["interpretations"]["minItems"], len(analysis["findings"]))
+        self.assertEqual(schema["properties"]["interpretations"]["maxItems"], len(analysis["findings"]))
+        self.assertNotIn("evidence", schema["properties"]["interpretations"]["items"]["properties"])
+        self.assertEqual(schema["properties"]["confidence"]["properties"]["level"]["enum"], ["low"])
 
     def test_rejected_evidence_preserves_previous_output(self):
         self.output.write_text("previous result")
@@ -86,41 +93,99 @@ class WorkerTests(unittest.TestCase):
             self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
         self.assertEqual(self.output.read_text(), "previous result")
 
-    def test_wrong_duration_rejected(self):
+    def test_wrong_trend_duration_is_replaced(self):
         bad = response_fixture(self.analysis)
         bad["interpretations"][0]["explanation"] = "Moisture declined over 99 days."
-        with self.assertRaisesRegex(ValueError, "Duration mismatch"):
-            self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
-        self.assertFalse(self.output.exists())
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        explanation = result["response"]["interpretations"][0]["explanation"]
+        self.assertNotIn("99 days", explanation)
+        self.assertIn("last qualifying daily average", explanation)
 
-    def test_wrong_evidence_rejected(self):
+    def test_worker_replaces_model_evidence_with_verified_evidence(self):
         for key, value in (("daily_analysis_start", "2099-01-01"),
-                           ("net_change_percentage_points", 999),
+                           ("first_to_last_daily_average_change_percentage_points", 999),
                            ("daily_days_analyzed", True)):
             with self.subTest(key=key):
                 bad = response_fixture(self.analysis)
                 bad["interpretations"][0]["evidence"][key] = value
-                with self.assertRaisesRegex(ValueError, "Evidence mismatch"):
-                    self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
-                self.assertFalse(self.output.exists())
+                result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+                expected = evidence_for_finding(self.analysis["findings"][0])
+                self.assertEqual(result["response"]["interpretations"][0]["evidence"], expected)
 
-    def test_missing_evidence_rejected(self):
+    def test_worker_attaches_missing_evidence(self):
         bad = response_fixture(self.analysis)
         del bad["interpretations"][0]["evidence"]
-        with self.assertRaisesRegex(ValueError, "Missing structured evidence"):
-            self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        expected = evidence_for_finding(self.analysis["findings"][0])
+        self.assertEqual(result["response"]["interpretations"][0]["evidence"], expected)
 
-    def test_missing_correlation_rejected(self):
+    def test_worker_restores_complete_correlation_evidence(self):
         bad = response_fixture(self.analysis)
         del bad["interpretations"][1]["evidence"]["consecutive_change_correlation"]
-        with self.assertRaisesRegex(ValueError, "Evidence fields mismatch"):
-            self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        expected = evidence_for_finding(self.analysis["findings"][1])
+        self.assertEqual(result["response"]["interpretations"][1]["evidence"], expected)
 
-    def test_relative_dates_rejected(self):
+    def test_relative_dates_replaced_with_verified_dates(self):
         bad = response_fixture(self.analysis)
         bad["interpretations"][0]["explanation"] = "Over the past two days, moisture was mixed."
-        with self.assertRaisesRegex(ValueError, "explicit historical dates"):
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        explanation = result["response"]["interpretations"][0]["explanation"]
+        evidence = result["response"]["interpretations"][0]["evidence"]
+        self.assertNotIn("past two days", explanation.lower())
+        self.assertIn(evidence["daily_analysis_start"], explanation)
+        self.assertIn(evidence["daily_analysis_end"], explanation)
+
+    def test_daily_change_matches_daily_trend_basis(self):
+        trend = self.analysis["findings"][0]
+        self.assertEqual(trend["daily_direction"], "consistently_decreasing")
+        self.assertLess(trend["first_to_last_daily_average_change_percentage_points"], 0)
+
+    def test_per_day_and_gap_claims_are_replaced(self):
+        bad = response_fixture(self.analysis)
+        bad["interpretations"][0]["explanation"] = (
+            "Moisture had an average daily decline of 4 points over the same two-day period."
+        )
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        explanation = result["response"]["interpretations"][0]["explanation"]
+        self.assertNotIn("average daily decline", explanation.lower())
+        self.assertNotIn("same two-day period", explanation.lower())
+        self.assertIn("last qualifying daily average", explanation)
+
+    def test_unsupported_correlation_labels_are_replaced(self):
+        bad = response_fixture(self.analysis)
+        bad["interpretations"][1]["explanation"] = (
+            "The correlation was weak and statistically insignificant."
+        )
+        result = self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+        explanation = result["response"]["interpretations"][1]["explanation"]
+        self.assertNotIn("weak", explanation.lower())
+        self.assertNotIn("insignificant", explanation.lower())
+        self.assertIn("significance was not tested", explanation.lower())
+
+    def test_empty_unknowns_rejected(self):
+        bad = response_fixture(self.analysis)
+        bad["unknowns"] = []
+        with self.assertRaisesRegex(ValueError, "Unknowns must identify"):
             self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+
+    def test_overstated_confidence_rejected(self):
+        bad = response_fixture(self.analysis)
+        bad["confidence"] = {"level": "medium", "reason": "Many observations"}
+        with self.assertRaisesRegex(ValueError, "Confidence must remain low"):
+            self.run_mocked({"done": True, "message": {"content": json.dumps(bad)}})
+
+    def test_validation_failure_gets_one_successful_repair(self):
+        bad = response_fixture(self.analysis)
+        bad["unknowns"] = []
+        first_reply = {"done": True, "message": {"content": json.dumps(bad)}}
+        with patch("advisor_worker.request_json", side_effect=[self.analysis, first_reply, self.reply]) as request:
+            result = run_advisor_cycle(backend_url="http://example.test", output_path=self.output)
+        self.assertEqual(result["status"], "validated")
+        self.assertEqual(request.call_count, 3)
+        repair_payload = request.call_args_list[2].kwargs["payload"]
+        self.assertIn("failed deterministic validation", repair_payload["messages"][-1]["content"])
+        self.assertIn("Field calibration is incomplete", repair_payload["messages"][-1]["content"])
 
     def test_malformed_json_rejected(self):
         with self.assertRaises(json.JSONDecodeError):
